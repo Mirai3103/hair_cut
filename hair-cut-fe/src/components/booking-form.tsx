@@ -1,25 +1,34 @@
-'use client'
-
-import { useState } from 'react'
-import { CalendarIcon } from 'lucide-react'
-import { format } from 'date-fns'
-import { vi } from 'date-fns/locale' // Thêm locale tiếng Việt cho định dạng ngày
-
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import * as z from 'zod'
-import { cn } from '@/lib/utils'
+import { useEffect, useState } from 'react'
+import {
+  Calendar as CalendarIcon,
+  Clock,
+  PlusCircle,
+  Scissors,
+} from 'lucide-react'
+import dayjs from 'dayjs'
+import ServiceSelectionModal from './SelectServiceModal'
+import type { BookingFormValues } from '@/hooks/useBookingForm'
+import type { UseFormReturn } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Calendar } from '@/components/ui/calendar'
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import {
   Popover,
   PopoverContent,
@@ -32,334 +41,420 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
+import { formatMinutes } from '@/lib/duration'
 
-const formSchema = z.object({
-  service: z.string({
-    required_error: 'Vui lòng chọn một dịch vụ',
-  }),
-  stylist: z.string({
-    required_error: 'Vui lòng chọn một thợ làm tóc',
-  }),
-  date: z.date({
-    required_error: 'Vui lòng chọn một ngày',
-  }),
-  time: z.string({
-    required_error: 'Vui lòng chọn một giờ',
-  }),
-  name: z.string().min(2, {
-    message: 'Tên phải có ít nhất 2 ký tự',
-  }),
-  email: z.string().email({
-    message: 'Vui lòng nhập địa chỉ email hợp lệ',
-  }),
-  phone: z.string().min(10, {
-    message: 'Vui lòng nhập số điện thoại hợp lệ',
-  }),
-  notes: z.string().optional(),
-})
+// Sample service data - replace with your actual data or API call
+const SERVICES = [
+  { id: 1, name: 'Cắt tóc nam', price: 100000, duration: 30, category: 'Nam' },
+  { id: 2, name: 'Cắt tóc nữ', price: 150000, duration: 45, category: 'Nữ' },
+  {
+    id: 3,
+    name: 'Uốn tóc',
+    price: 300000,
+    duration: 120,
+    category: 'Tạo kiểu',
+  },
+  {
+    id: 4,
+    name: 'Nhuộm tóc',
+    price: 400000,
+    duration: 90,
+    category: 'Màu sắc',
+  },
+  {
+    id: 5,
+    name: 'Gội đầu massage',
+    price: 80000,
+    duration: 30,
+    category: 'Chăm sóc',
+  },
+  {
+    id: 6,
+    name: 'Duỗi tóc',
+    price: 350000,
+    duration: 150,
+    category: 'Tạo kiểu',
+  },
+  {
+    id: 7,
+    name: 'Nối tóc',
+    price: 500000,
+    duration: 180,
+    category: 'Tạo kiểu',
+  },
+  {
+    id: 8,
+    name: 'Tạo kiểu tóc cô dâu',
+    price: 700000,
+    duration: 120,
+    category: 'Đặc biệt',
+  },
+  {
+    id: 9,
+    name: 'Cắt và tạo kiểu tóc trẻ em',
+    price: 80000,
+    duration: 25,
+    category: 'Trẻ em',
+  },
+  {
+    id: 10,
+    name: 'Điều trị tóc hư tổn',
+    price: 250000,
+    duration: 60,
+    category: 'Chăm sóc',
+  },
+]
 
-export default function BookingForm() {
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isSuccess, setIsSuccess] = useState(false)
+interface BookingFormProps {
+  form: UseFormReturn<BookingFormValues>
+  onSubmit: (values: BookingFormValues) => void
+}
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      notes: '',
-    },
-  })
+const BookingForm: React.FC<BookingFormProps> = ({ form, onSubmit }) => {
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
+    form.getValues().appointmentDatetime,
+  )
+  const [timeSlots, setTimeSlots] = useState<Array<string>>([])
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null)
+  const [selectedServices, setSelectedServices] = useState<Array<number>>(
+    form.getValues().serviceIds,
+  )
+  const [isServiceModalOpen, setIsServiceModalOpen] = useState(false)
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsSubmitting(true)
+  // Generate time slots for the selected date
+  useEffect(() => {
+    if (selectedDate) {
+      const slots = generateTimeSlots(selectedDate)
+      setTimeSlots(slots)
+      setSelectedTimeSlot(null)
+    }
+  }, [selectedDate])
 
-    // Giả lập gọi API
-    setTimeout(() => {
-      console.log(values)
-      setIsSubmitting(false)
-      setIsSuccess(true)
+  // Update form value when both date and time are selected
+  useEffect(() => {
+    if (selectedDate && selectedTimeSlot) {
+      const [hours, minutes] = selectedTimeSlot.split(':').map(Number)
+      const dateTime = dayjs(selectedDate)
+        .hour(hours)
+        .minute(minutes)
+        .second(0)
+        .toDate()
 
-      // Đặt lại biểu mẫu sau 3 giây
-      setTimeout(() => {
-        setIsSuccess(false)
-        form.reset()
-      }, 3000)
-    }, 1500)
+      form.setValue('appointmentDatetime', dateTime)
+    }
+  }, [selectedDate, selectedTimeSlot, form])
+
+  // Generate time slots from 7:00 to 24:00 with 20-minute intervals
+  const generateTimeSlots = (date: Date): Array<string> => {
+    const slots = []
+    const currentDate = dayjs()
+    const selectedDay = dayjs(date)
+    const isSameDay =
+      currentDate.format('YYYY-MM-DD') === selectedDay.format('YYYY-MM-DD')
+
+    // Start from 7:00 (7 * 60 minutes)
+    let startMinutes = 7 * 60
+    // End at 24:00 (24 * 60 minutes)
+    const endMinutes = 24 * 60
+
+    // If booking is for today, start from the next available slot
+    if (isSameDay) {
+      const currentHour = currentDate.hour()
+      const currentMinute = currentDate.minute()
+      const currentTotalMinutes = currentHour * 60 + currentMinute
+
+      // Round up to the next 20-minute slot plus a buffer
+      startMinutes = Math.ceil((currentTotalMinutes + 40) / 20) * 20
+    }
+
+    // Generate slots in 20-minute intervals
+    for (let minutes = startMinutes; minutes < endMinutes; minutes += 20) {
+      const hour = Math.floor(minutes / 60)
+      const minute = minutes % 60
+      slots.push(
+        `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`,
+      )
+    }
+
+    return slots
   }
 
-  const availableTimes = [
-    '9:00 Sáng',
-    '9:30 Sáng',
-    '10:00 Sáng',
-    '10:30 Sáng',
-    '11:00 Sáng',
-    '11:30 Sáng',
-    '12:00 Trưa',
-    '12:30 Chiều',
-    '1:00 Chiều',
-    '1:30 Chiều',
-    '2:00 Chiều',
-    '2:30 Chiều',
-    '3:00 Chiều',
-    '3:30 Chiều',
-    '4:00 Chiều',
-    '4:30 Chiều',
-    '5:00 Chiều',
-    '5:30 Chiều',
-    '6:00 Chiều',
-    '6:30 Chiều',
-    '7:00 Chiều',
-  ]
+  // Handle service selection from modal
+  const handleServiceSelection = (serviceIds: Array<number>) => {
+    setSelectedServices(serviceIds)
+    form.setValue('serviceIds', serviceIds)
+  }
+
+  // Format date for display
+  const formatDate = (date: Date | undefined) => {
+    if (!date) return ''
+    return dayjs(date).format('DD/MM/YYYY')
+  }
+
+  // Get service details by ID
+  const getServiceById = (id: number) => {
+    return SERVICES.find((service) => service.id === id)
+  }
+
+  // Calculate total price and duration
+  const calculateTotal = () => {
+    let totalPrice = 0
+    let totalDuration = 0
+
+    selectedServices.forEach((serviceId) => {
+      const service = getServiceById(serviceId)
+      if (service) {
+        totalPrice += service.price
+        totalDuration += service.duration
+      }
+    })
+
+    return { totalPrice, totalDuration }
+  }
+
+  const { totalPrice, totalDuration } = calculateTotal()
 
   return (
-    <div>
-      {isSuccess ? (
-        <div className="text-center py-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4">
-            <svg
-              className="w-8 h-8 text-green-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-          </div>
-          <h3 className="text-xl font-medium mb-2">Đặt lịch thành công!</h3>
-          <p className="text-muted-foreground">
-            Cuộc hẹn của bạn đã được lên lịch. Chúng tôi đã gửi email xác nhận
-            đến bạn.
-          </p>
-        </div>
-      ) : (
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Scissors className="h-5 w-5" />
+          Đặt Lịch Cắt Tóc
+        </CardTitle>
+        <CardDescription>
+          Đặt lịch cắt tóc của bạn theo các bước bên dưới
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="service"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Dịch vụ</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Chọn một dịch vụ" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="womens-haircut">
-                          Cắt tóc nữ
-                        </SelectItem>
-                        <SelectItem value="mens-haircut">
-                          Cắt tóc nam
-                        </SelectItem>
-                        <SelectItem value="color">Nhuộm toàn bộ</SelectItem>
-                        <SelectItem value="highlights">
-                          Nhuộm highlight
-                        </SelectItem>
-                        <SelectItem value="balayage">Nhuộm balayage</SelectItem>
-                        <SelectItem value="blowout">Sấy tạo kiểu</SelectItem>
-                        <SelectItem value="treatment">Chăm sóc tóc</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            {/* Phone Number Field */}
+            <FormField
+              control={form.control}
+              name="customerPhone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Số điện thoại</FormLabel>
+                  <FormControl>
+                    <Input placeholder="0123456789" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              <FormField
-                control={form.control}
-                name="stylist"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Thợ làm tóc</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Chọn một thợ làm tóc" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="emma">Emma Johnson</SelectItem>
-                        <SelectItem value="michael">Michael Chen</SelectItem>
-                        <SelectItem value="sophia">Sophia Rodriguez</SelectItem>
-                        <SelectItem value="james">James Wilson</SelectItem>
-                        <SelectItem value="any">
-                          Bất kỳ thợ làm tóc nào còn trống
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            {/* Services Selection Button */}
+            <FormField
+              control={form.control}
+              name="serviceIds"
+              render={() => (
+                <FormItem>
+                  <FormLabel>Dịch vụ</FormLabel>
+                  <FormControl>
+                    <div className="space-y-3">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full flex justify-between items-center h-10"
+                        onClick={() => setIsServiceModalOpen(true)}
+                      >
+                        <span className="text-muted-foreground">
+                          {selectedServices.length === 0
+                            ? 'Chọn dịch vụ'
+                            : `${selectedServices.length} dịch vụ đã chọn`}
+                        </span>
+                        <PlusCircle className="h-4 w-4" />
+                      </Button>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="date"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Ngày</FormLabel>
+                      {/* Display selected services */}
+                      {selectedServices.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {selectedServices.map((serviceId) => {
+                            const service = getServiceById(serviceId)
+                            return service ? (
+                              <Badge key={serviceId} variant="secondary">
+                                {service.name}
+                              </Badge>
+                            ) : null
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Date Selection */}
+            <FormField
+              control={form.control}
+              name="appointmentDatetime"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Chọn ngày và giờ</FormLabel>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Date picker */}
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
                           <Button
-                            variant={'outline'}
+                            variant="outline"
                             className={cn(
-                              'pl-3 text-left font-normal',
-                              !field.value && 'text-muted-foreground',
+                              'w-full pl-3 text-left font-normal',
+                              !selectedDate && 'text-muted-foreground',
                             )}
                           >
-                            {field.value ? (
-                              format(field.value, 'PPP', { locale: vi }) // Sử dụng locale tiếng Việt
-                            ) : (
-                              <span>Chọn ngày</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {selectedDate
+                              ? formatDate(selectedDate)
+                              : 'Chọn ngày'}
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
                         <Calendar
                           mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
+                          selected={selectedDate}
+                          onSelect={setSelectedDate}
                           disabled={(date) =>
-                            date < new Date() ||
-                            date >
-                              new Date(
-                                new Date().setMonth(new Date().getMonth() + 2),
-                              )
+                            date < dayjs().startOf('day').toDate()
                           }
                           initialFocus
                         />
                       </PopoverContent>
                     </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
-              <FormField
-                control={form.control}
-                name="time"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Giờ</FormLabel>
+                    {/* Time picker */}
                     <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      disabled={!selectedDate || timeSlots.length === 0}
+                      value={selectedTimeSlot || ''}
+                      onValueChange={setSelectedTimeSlot}
                     >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Chọn một giờ" />
-                        </SelectTrigger>
-                      </FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Chọn giờ">
+                          {selectedTimeSlot ? (
+                            <div className="flex items-center">
+                              <Clock className="mr-2 h-4 w-4" />
+                              {selectedTimeSlot}
+                            </div>
+                          ) : (
+                            'Chọn giờ'
+                          )}
+                        </SelectValue>
+                      </SelectTrigger>
                       <SelectContent>
-                        {availableTimes.map((time) => (
-                          <SelectItem key={time} value={time}>
-                            {time}
+                        {timeSlots.length > 0 ? (
+                          timeSlots.map((timeSlot) => (
+                            <SelectItem key={timeSlot} value={timeSlot}>
+                              {timeSlot}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="no-slots" disabled>
+                            Không có giờ trống
                           </SelectItem>
-                        ))}
+                        )}
                       </SelectContent>
                     </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Họ và tên</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Nhập họ và tên của bạn" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Nhập email của bạn" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Số điện thoại</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Nhập số điện thoại của bạn"
-                      {...field}
-                    />
-                  </FormControl>
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
+            {/* Notes Field */}
             <FormField
               control={form.control}
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Yêu cầu đặc biệt</FormLabel>
+                  <FormLabel>Ghi chú</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Bất kỳ yêu cầu hoặc ghi chú đặc biệt nào cho thợ làm tóc"
+                      placeholder="Ghi chú thêm về nhu cầu của bạn..."
                       className="resize-none"
                       {...field}
                     />
                   </FormControl>
-                  <FormDescription>
-                    Vui lòng cho chúng tôi biết nếu bạn có bất kỳ sở thích hoặc
-                    mối quan ngại cụ thể nào.
-                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? 'Đang đặt lịch...' : 'Đặt lịch hẹn'}
-            </Button>
+            {/* Booking Summary */}
+            {selectedServices.length > 0 && (
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="summary">
+                  <AccordionTrigger className="font-medium">
+                    Thông tin đặt lịch
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-2">
+                      <div className="flex justify-between py-1 border-b">
+                        <span>Dịch vụ đã chọn:</span>
+                        <span>{selectedServices.length} dịch vụ</span>
+                      </div>
+                      {selectedServices.map((serviceId) => {
+                        const service = getServiceById(serviceId)
+                        return service ? (
+                          <div
+                            key={serviceId}
+                            className="flex justify-between text-sm pl-2"
+                          >
+                            <span>{service.name}</span>
+                            <span>{service.price.toLocaleString()}đ</span>
+                          </div>
+                        ) : null
+                      })}
+                      <div className="flex justify-between py-1 border-b">
+                        <span>Thời gian dự kiến:</span>
+                        <span>{formatMinutes(totalDuration)}</span>
+                      </div>
+                      <div className="flex justify-between font-semibold pt-1">
+                        <span>Tổng tiền:</span>
+                        <span>{totalPrice.toLocaleString()}đ</span>
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            )}
           </form>
         </Form>
-      )}
-    </div>
+      </CardContent>
+      <CardFooter>
+        <Button
+          className="w-full bg-blue-900 hover:bg-blue-800"
+          onClick={form.handleSubmit(onSubmit)}
+          disabled={
+            form.formState.isSubmitting ||
+            selectedServices.length === 0 ||
+            !selectedTimeSlot
+          }
+        >
+          {form.formState.isSubmitting ? 'Đang xử lý...' : 'Đặt lịch ngay'}
+        </Button>
+      </CardFooter>
+
+      {/* Service Selection Modal */}
+      <ServiceSelectionModal
+        isOpen={isServiceModalOpen}
+        onClose={() => setIsServiceModalOpen(false)}
+        services={SERVICES}
+        selectedServiceIds={selectedServices}
+        onConfirm={handleServiceSelection}
+      />
+    </Card>
   )
 }
+
+export default BookingForm

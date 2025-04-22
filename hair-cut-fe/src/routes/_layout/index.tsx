@@ -1,4 +1,4 @@
-import { createFileRoute, useLoaderData } from '@tanstack/react-router'
+import { Link, createFileRoute, useLoaderData } from '@tanstack/react-router'
 import {
   ChevronRight,
   ChevronUp,
@@ -8,7 +8,6 @@ import {
   Mail,
   MapPin,
   Phone,
-  Scissors,
   Star,
   Twitter,
 } from 'lucide-react'
@@ -17,8 +16,9 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import serviceService from '@/services/service.service'
+import { cn } from '@/lib/utils'
 
-export const Route = createFileRoute('/')({
+export const Route = createFileRoute('/_layout/')({
   loader: async () => {
     const data = await serviceService.queryServices({
       sortDirection: 'desc',
@@ -28,15 +28,21 @@ export const Route = createFileRoute('/')({
     })
     return data.data.data
   },
+
   component: RouteComponent,
 })
 
 function RouteComponent() {
   const [rating, setRating] = useState(1)
   const data = useLoaderData({
-    from: '/',
+    from: '/_layout/',
   })
-
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const handleBooking = () => {
+    if (phoneNumber) {
+    } else {
+    }
+  }
   return (
     <>
       <div className="relative w-full h-[400px] bg-blue-900">
@@ -60,9 +66,21 @@ function RouteComponent() {
               <Input
                 placeholder="Nhập SĐT để đặt lịch"
                 className="bg-white text-gray-800"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                type="tel"
               />
-              <Button className="bg-blue-100 hover:bg-blue-200 text-blue-900 font-bold whitespace-nowrap">
-                ĐẶT LỊCH NGAY
+              <Button
+                className={cn(
+                  'bg-blue-100 hover:bg-blue-200 text-blue-900 font-bold whitespace-nowrap',
+                  !phoneNumber && '!cursor-not-allowed',
+                )}
+                onClick={handleBooking}
+                disabled={!phoneNumber}
+                type="button"
+                asChild
+              >
+                <Link to="/booking">Đặt lịch ngay</Link>
               </Button>
             </div>
           </div>
@@ -100,7 +118,7 @@ function RouteComponent() {
             <h2 className="text-2xl font-bold text-blue-900">DỊCH VỤ TÓC</h2>
 
             <a
-              href="/services/hair"
+              href="/services/hair-cut"
               className="text-blue-500 flex items-center"
             >
               xem thêm <ChevronRight className="h-4 w-4" />
@@ -124,12 +142,15 @@ function RouteComponent() {
                 </h3>
 
                 <div className="flex justify-between items-center">
-                  <a
-                    href={`/services/hair-cut/${service.id}`}
+                  <Link
+                    to={`/services/hair-cut/$id`}
+                    params={{
+                      id: service.id + '',
+                    }}
                     className="text-blue-500 flex items-center"
                   >
                     Tìm hiểu thêm <ChevronRight className="h-4 w-4" />
-                  </a>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -248,134 +269,6 @@ function RouteComponent() {
           </div>
         </div>
       </section>
-      <footer className="border-t bg-muted">
-        <div className="container py-8 md:py-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div className="animate-fade-up animate-once animate-duration-700 animate-delay-100 animate-ease-in-out">
-              <div className="flex items-center gap-2 mb-4">
-                <Scissors className="h-6 w-6" />
-                <span className="text-xl font-bold">Tóc Đẹp</span>
-              </div>
-              <p className="text-muted-foreground">
-                Dịch vụ tạo kiểu tóc chuyên nghiệp cho mọi loại tóc và phong
-                cách.
-              </p>
-            </div>
-
-            <div className="animate-fade-up animate-once animate-duration-700 animate-delay-200 animate-ease-in-out">
-              <h3 className="font-medium mb-4">Liên kết nhanh</h3>
-              <ul className="space-y-2">
-                <li>
-                  <a
-                    href="#services"
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    Dịch vụ
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#stylists"
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    Thợ làm tóc
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#booking"
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    Đặt lịch
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#testimonials"
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    Đánh giá
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            <div className="animate-fade-up animate-once animate-duration-700 animate-delay-300 animate-ease-in-out">
-              <h3 className="font-medium mb-4">Dịch vụ</h3>
-              <ul className="space-y-2">
-                <li>
-                  <a
-                    href="#"
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    Cắt tóc
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    Nhuộm tóc
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    Tạo kiểu
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    Chăm sóc tóc
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            <div className="animate-fade-up animate-once animate-duration-700 animate-delay-400 animate-ease-in-out">
-              <h3 className="font-medium mb-4">Pháp lý</h3>
-              <ul className="space-y-2">
-                <li>
-                  <a
-                    href="#"
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    Chính sách bảo mật
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    Điều khoản dịch vụ
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    Chính sách cookie
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="border-t mt-8 pt-8 text-center text-muted-foreground animate-fade animate-once animate-duration-1000 animate-delay-500 animate-ease-in-out">
-            <p>
-              © {new Date().getFullYear()} Tóc Đẹp. Mọi quyền được bảo lưu.
-            </p>
-          </div>
-        </div>
-      </footer>
     </>
   )
 }

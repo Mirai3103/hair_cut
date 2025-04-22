@@ -11,174 +11,210 @@
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
-import { Route as GabaleImport } from './routes/gabale'
-import { Route as IndexImport } from './routes/index'
-import { Route as DemoTanstackQueryImport } from './routes/demo.tanstack-query'
-import { Route as DemoTableImport } from './routes/demo.table'
-import { Route as ServicesHairCutIndexImport } from './routes/services/hair-cut/index'
-import { Route as ServicesHairCutIdImport } from './routes/services/hair-cut/$id'
+import { Route as AdminImport } from './routes/admin'
+import { Route as LayoutImport } from './routes/_layout'
+import { Route as AdminIndexImport } from './routes/admin/index'
+import { Route as LayoutIndexImport } from './routes/_layout/index'
+import { Route as LayoutBookingImport } from './routes/_layout/booking'
+import { Route as LayoutServicesHairCutIndexImport } from './routes/_layout/services/hair-cut/index'
+import { Route as LayoutServicesHairCutIdImport } from './routes/_layout/services/hair-cut/$id'
 
 // Create/Update Routes
 
-const GabaleRoute = GabaleImport.update({
-  id: '/gabale',
-  path: '/gabale',
+const AdminRoute = AdminImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRoute,
 } as any)
 
-const IndexRoute = IndexImport.update({
+const LayoutRoute = LayoutImport.update({
+  id: '/_layout',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const AdminIndexRoute = AdminIndexImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => AdminRoute,
 } as any)
 
-const DemoTanstackQueryRoute = DemoTanstackQueryImport.update({
-  id: '/demo/tanstack-query',
-  path: '/demo/tanstack-query',
-  getParentRoute: () => rootRoute,
+const LayoutIndexRoute = LayoutIndexImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LayoutRoute,
 } as any)
 
-const DemoTableRoute = DemoTableImport.update({
-  id: '/demo/table',
-  path: '/demo/table',
-  getParentRoute: () => rootRoute,
+const LayoutBookingRoute = LayoutBookingImport.update({
+  id: '/booking',
+  path: '/booking',
+  getParentRoute: () => LayoutRoute,
 } as any)
 
-const ServicesHairCutIndexRoute = ServicesHairCutIndexImport.update({
-  id: '/services/hair-cut/',
-  path: '/services/hair-cut/',
-  getParentRoute: () => rootRoute,
-} as any)
+const LayoutServicesHairCutIndexRoute = LayoutServicesHairCutIndexImport.update(
+  {
+    id: '/services/hair-cut/',
+    path: '/services/hair-cut/',
+    getParentRoute: () => LayoutRoute,
+  } as any,
+)
 
-const ServicesHairCutIdRoute = ServicesHairCutIdImport.update({
+const LayoutServicesHairCutIdRoute = LayoutServicesHairCutIdImport.update({
   id: '/services/hair-cut/$id',
   path: '/services/hair-cut/$id',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => LayoutRoute,
 } as any)
 
 // Populate the FileRoutesByPath interface
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/_layout': {
+      id: '/_layout'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof LayoutImport
+      parentRoute: typeof rootRoute
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminImport
+      parentRoute: typeof rootRoute
+    }
+    '/_layout/booking': {
+      id: '/_layout/booking'
+      path: '/booking'
+      fullPath: '/booking'
+      preLoaderRoute: typeof LayoutBookingImport
+      parentRoute: typeof LayoutImport
+    }
+    '/_layout/': {
+      id: '/_layout/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof LayoutIndexImport
+      parentRoute: typeof LayoutImport
     }
-    '/gabale': {
-      id: '/gabale'
-      path: '/gabale'
-      fullPath: '/gabale'
-      preLoaderRoute: typeof GabaleImport
-      parentRoute: typeof rootRoute
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexImport
+      parentRoute: typeof AdminImport
     }
-    '/demo/table': {
-      id: '/demo/table'
-      path: '/demo/table'
-      fullPath: '/demo/table'
-      preLoaderRoute: typeof DemoTableImport
-      parentRoute: typeof rootRoute
-    }
-    '/demo/tanstack-query': {
-      id: '/demo/tanstack-query'
-      path: '/demo/tanstack-query'
-      fullPath: '/demo/tanstack-query'
-      preLoaderRoute: typeof DemoTanstackQueryImport
-      parentRoute: typeof rootRoute
-    }
-    '/services/hair-cut/$id': {
-      id: '/services/hair-cut/$id'
+    '/_layout/services/hair-cut/$id': {
+      id: '/_layout/services/hair-cut/$id'
       path: '/services/hair-cut/$id'
       fullPath: '/services/hair-cut/$id'
-      preLoaderRoute: typeof ServicesHairCutIdImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof LayoutServicesHairCutIdImport
+      parentRoute: typeof LayoutImport
     }
-    '/services/hair-cut/': {
-      id: '/services/hair-cut/'
+    '/_layout/services/hair-cut/': {
+      id: '/_layout/services/hair-cut/'
       path: '/services/hair-cut'
       fullPath: '/services/hair-cut'
-      preLoaderRoute: typeof ServicesHairCutIndexImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof LayoutServicesHairCutIndexImport
+      parentRoute: typeof LayoutImport
     }
   }
 }
 
 // Create and export the route tree
 
+interface LayoutRouteChildren {
+  LayoutBookingRoute: typeof LayoutBookingRoute
+  LayoutIndexRoute: typeof LayoutIndexRoute
+  LayoutServicesHairCutIdRoute: typeof LayoutServicesHairCutIdRoute
+  LayoutServicesHairCutIndexRoute: typeof LayoutServicesHairCutIndexRoute
+}
+
+const LayoutRouteChildren: LayoutRouteChildren = {
+  LayoutBookingRoute: LayoutBookingRoute,
+  LayoutIndexRoute: LayoutIndexRoute,
+  LayoutServicesHairCutIdRoute: LayoutServicesHairCutIdRoute,
+  LayoutServicesHairCutIndexRoute: LayoutServicesHairCutIndexRoute,
+}
+
+const LayoutRouteWithChildren =
+  LayoutRoute._addFileChildren(LayoutRouteChildren)
+
+interface AdminRouteChildren {
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/gabale': typeof GabaleRoute
-  '/demo/table': typeof DemoTableRoute
-  '/demo/tanstack-query': typeof DemoTanstackQueryRoute
-  '/services/hair-cut/$id': typeof ServicesHairCutIdRoute
-  '/services/hair-cut': typeof ServicesHairCutIndexRoute
+  '': typeof LayoutRouteWithChildren
+  '/admin': typeof AdminRouteWithChildren
+  '/booking': typeof LayoutBookingRoute
+  '/': typeof LayoutIndexRoute
+  '/admin/': typeof AdminIndexRoute
+  '/services/hair-cut/$id': typeof LayoutServicesHairCutIdRoute
+  '/services/hair-cut': typeof LayoutServicesHairCutIndexRoute
 }
 
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/gabale': typeof GabaleRoute
-  '/demo/table': typeof DemoTableRoute
-  '/demo/tanstack-query': typeof DemoTanstackQueryRoute
-  '/services/hair-cut/$id': typeof ServicesHairCutIdRoute
-  '/services/hair-cut': typeof ServicesHairCutIndexRoute
+  '/booking': typeof LayoutBookingRoute
+  '/': typeof LayoutIndexRoute
+  '/admin': typeof AdminIndexRoute
+  '/services/hair-cut/$id': typeof LayoutServicesHairCutIdRoute
+  '/services/hair-cut': typeof LayoutServicesHairCutIndexRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
-  '/': typeof IndexRoute
-  '/gabale': typeof GabaleRoute
-  '/demo/table': typeof DemoTableRoute
-  '/demo/tanstack-query': typeof DemoTanstackQueryRoute
-  '/services/hair-cut/$id': typeof ServicesHairCutIdRoute
-  '/services/hair-cut/': typeof ServicesHairCutIndexRoute
+  '/_layout': typeof LayoutRouteWithChildren
+  '/admin': typeof AdminRouteWithChildren
+  '/_layout/booking': typeof LayoutBookingRoute
+  '/_layout/': typeof LayoutIndexRoute
+  '/admin/': typeof AdminIndexRoute
+  '/_layout/services/hair-cut/$id': typeof LayoutServicesHairCutIdRoute
+  '/_layout/services/hair-cut/': typeof LayoutServicesHairCutIndexRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | ''
+    | '/admin'
+    | '/booking'
     | '/'
-    | '/gabale'
-    | '/demo/table'
-    | '/demo/tanstack-query'
+    | '/admin/'
     | '/services/hair-cut/$id'
     | '/services/hair-cut'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/booking'
     | '/'
-    | '/gabale'
-    | '/demo/table'
-    | '/demo/tanstack-query'
+    | '/admin'
     | '/services/hair-cut/$id'
     | '/services/hair-cut'
   id:
     | '__root__'
-    | '/'
-    | '/gabale'
-    | '/demo/table'
-    | '/demo/tanstack-query'
-    | '/services/hair-cut/$id'
-    | '/services/hair-cut/'
+    | '/_layout'
+    | '/admin'
+    | '/_layout/booking'
+    | '/_layout/'
+    | '/admin/'
+    | '/_layout/services/hair-cut/$id'
+    | '/_layout/services/hair-cut/'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  GabaleRoute: typeof GabaleRoute
-  DemoTableRoute: typeof DemoTableRoute
-  DemoTanstackQueryRoute: typeof DemoTanstackQueryRoute
-  ServicesHairCutIdRoute: typeof ServicesHairCutIdRoute
-  ServicesHairCutIndexRoute: typeof ServicesHairCutIndexRoute
+  LayoutRoute: typeof LayoutRouteWithChildren
+  AdminRoute: typeof AdminRouteWithChildren
 }
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  GabaleRoute: GabaleRoute,
-  DemoTableRoute: DemoTableRoute,
-  DemoTanstackQueryRoute: DemoTanstackQueryRoute,
-  ServicesHairCutIdRoute: ServicesHairCutIdRoute,
-  ServicesHairCutIndexRoute: ServicesHairCutIndexRoute,
+  LayoutRoute: LayoutRouteWithChildren,
+  AdminRoute: AdminRouteWithChildren,
 }
 
 export const routeTree = rootRoute
@@ -191,31 +227,44 @@ export const routeTree = rootRoute
     "__root__": {
       "filePath": "__root.tsx",
       "children": [
-        "/",
-        "/gabale",
-        "/demo/table",
-        "/demo/tanstack-query",
-        "/services/hair-cut/$id",
-        "/services/hair-cut/"
+        "/_layout",
+        "/admin"
       ]
     },
-    "/": {
-      "filePath": "index.tsx"
+    "/_layout": {
+      "filePath": "_layout.tsx",
+      "children": [
+        "/_layout/booking",
+        "/_layout/",
+        "/_layout/services/hair-cut/$id",
+        "/_layout/services/hair-cut/"
+      ]
     },
-    "/gabale": {
-      "filePath": "gabale.tsx"
+    "/admin": {
+      "filePath": "admin.tsx",
+      "children": [
+        "/admin/"
+      ]
     },
-    "/demo/table": {
-      "filePath": "demo.table.tsx"
+    "/_layout/booking": {
+      "filePath": "_layout/booking.tsx",
+      "parent": "/_layout"
     },
-    "/demo/tanstack-query": {
-      "filePath": "demo.tanstack-query.tsx"
+    "/_layout/": {
+      "filePath": "_layout/index.tsx",
+      "parent": "/_layout"
     },
-    "/services/hair-cut/$id": {
-      "filePath": "services/hair-cut/$id.tsx"
+    "/admin/": {
+      "filePath": "admin/index.tsx",
+      "parent": "/admin"
     },
-    "/services/hair-cut/": {
-      "filePath": "services/hair-cut/index.tsx"
+    "/_layout/services/hair-cut/$id": {
+      "filePath": "_layout/services/hair-cut/$id.tsx",
+      "parent": "/_layout"
+    },
+    "/_layout/services/hair-cut/": {
+      "filePath": "_layout/services/hair-cut/index.tsx",
+      "parent": "/_layout"
     }
   }
 }

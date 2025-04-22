@@ -1,9 +1,9 @@
-import { createFileRoute, useLoaderData } from '@tanstack/react-router'
+import { Link, createFileRoute, useLoaderData } from '@tanstack/react-router'
 import { ChevronRight } from 'lucide-react'
 import type { Service } from '@/services/service.service'
 import serviceService from '@/services/service.service'
 
-export const Route = createFileRoute('/services/hair-cut/')({
+export const Route = createFileRoute('/_layout/services/hair-cut/')({
   loader: async () => {
     const data = await serviceService.queryServices({
       sortDirection: 'desc',
@@ -16,7 +16,7 @@ export const Route = createFileRoute('/services/hair-cut/')({
 
 function RouteComponent() {
   const { data } = useLoaderData({
-    from: '/services/hair-cut/',
+    from: '/_layout/services/hair-cut/',
   })
   return (
     <main className="container mx-auto px-4 py-8">
@@ -39,7 +39,7 @@ function RouteComponent() {
       </div>
       <div className="w-full flex justify-center mt-10">
         <button className="bg-blue-100 hover:bg-blue-200 mx-auto text-xl py-5 px-15 cursor-pointer text-blue-900 font-bold rounded-md whitespace-nowrap">
-          ĐẶT LỊCH NGAY
+          <Link to="/booking"> ĐẶT LỊCH NGAY</Link>
         </button>
       </div>
     </main>
@@ -126,12 +126,15 @@ function ServiceCard({ service }: ServiceCardProps) {
         <div className="inline-flex items-center justify-center px-3 py-1 rounded-full border border-blue-500 text-blue-500 text-sm">
           {service.estimatedTime} phút
         </div>
-        <a
-          href={`/services/${service.serviceName.toLowerCase()}/${service.id}`}
+        <Link
+          to={`/services/hair-cut/$id`}
+          params={{
+            id: service.id + '',
+          }}
           className="text-blue-500 flex items-center hover:underline"
         >
           Tìm hiểu thêm <ChevronRight className="h-4 w-4 ml-1" />
-        </a>
+        </Link>
       </div>
     </div>
   )

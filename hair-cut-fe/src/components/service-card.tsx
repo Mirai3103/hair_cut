@@ -2,6 +2,7 @@
 
 import { Clock } from 'lucide-react'
 
+import { Link } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
 
@@ -53,8 +54,9 @@ export default function ServiceCard({
         <Button
           variant="outline"
           className="w-full hover:animate-pulse hover:animate-once hover:animate-duration-500"
+          asChild
         >
-          Đặt lịch ngay
+          <Link to="/booking">Đặt lịch ngay</Link>
         </Button>
       </CardFooter>
     </Card>

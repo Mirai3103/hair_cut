@@ -1,8 +1,8 @@
-import { createFileRoute, useLoaderData } from '@tanstack/react-router'
+import { Link, createFileRoute, useLoaderData } from '@tanstack/react-router'
 import { ArrowLeft } from 'lucide-react'
 import serviceService from '@/services/service.service'
 
-export const Route = createFileRoute('/services/hair-cut/$id')({
+export const Route = createFileRoute('/_layout/services/hair-cut/$id')({
   loader: async ({ params }) => {
     const serviceId = params.id
     const data = await serviceService.getServiceById(Number(serviceId))
@@ -13,17 +13,17 @@ export const Route = createFileRoute('/services/hair-cut/$id')({
 
 function RouteComponent() {
   const service = useLoaderData({
-    from: '/services/hair-cut/$id',
+    from: '/_layout/services/hair-cut/$id',
   })
   return (
     <main className="container mx-auto px-4 py-8">
-      <a
-        href="/services/hair-cut"
+      <Link
+        to="/services/hair-cut"
         className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-6"
       >
         <ArrowLeft className="h-4 w-4 mr-1" />
         Quay lại danh sách dịch vụ
-      </a>
+      </Link>
 
       <div className="bg-blue-900 text-white py-4 px-6 rounded-lg mb-6">
         <h1 className="text-xl md:text-2xl font-bold uppercase">
@@ -76,7 +76,7 @@ function RouteComponent() {
 
       <div className="w-full flex justify-center">
         <button className="bg-blue-100 hover:bg-blue-200 mx-auto text-xl py-5 px-15 cursor-pointer text-blue-900 font-bold rounded-md whitespace-nowrap">
-          ĐẶT LỊCH NGAY
+          <Link to="/booking"> ĐẶT LỊCH NGAY</Link>
         </button>
       </div>
     </main>
