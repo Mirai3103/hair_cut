@@ -20,7 +20,6 @@ function RouteComponent() {
   })
   return (
     <main className="container mx-auto px-4 py-8">
-      {/* Section Title */}
       <div className="flex items-center mb-4">
         <div className="w-1 h-8 bg-blue-500 mr-3"></div>
         <h1 className="text-2xl font-bold text-blue-900">CẮT TÓC</h1>
@@ -31,7 +30,6 @@ function RouteComponent() {
         tiện lợi vừa thư giãn tại đây
       </p>
 
-      {/* Services Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {data.map((service: Service) => (
           <ServiceCard key={service.id} service={service} />

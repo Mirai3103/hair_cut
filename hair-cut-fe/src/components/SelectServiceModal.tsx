@@ -19,7 +19,6 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
-// Service type definition
 interface Service {
   id: number
   name: string
@@ -47,7 +46,6 @@ const ServiceSelectionModal: React.FC<ServiceSelectionModalProps> = ({
   const [tempSelectedIds, setTempSelectedIds] =
     useState<Array<number>>(selectedServiceIds)
 
-  // Reset temp selections when modal opens
   useEffect(() => {
     if (isOpen) {
       setTempSelectedIds([...selectedServiceIds])
@@ -55,7 +53,6 @@ const ServiceSelectionModal: React.FC<ServiceSelectionModalProps> = ({
     }
   }, [isOpen, selectedServiceIds])
 
-  // Filter services based on search query
   const filteredServices = services.filter(
     (service) =>
       service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -63,7 +60,6 @@ const ServiceSelectionModal: React.FC<ServiceSelectionModalProps> = ({
         service.category.toLowerCase().includes(searchQuery.toLowerCase())),
   )
 
-  // Toggle service selection
   const toggleService = (serviceId: number) => {
     if (tempSelectedIds.includes(serviceId)) {
       setTempSelectedIds(tempSelectedIds.filter((id) => id !== serviceId))
@@ -72,18 +68,15 @@ const ServiceSelectionModal: React.FC<ServiceSelectionModalProps> = ({
     }
   }
 
-  // Clear all selections
   const clearSelections = () => {
     setTempSelectedIds([])
   }
 
-  // Handle confirm button click
   const handleConfirm = () => {
     onConfirm(tempSelectedIds)
     onClose()
   }
 
-  // Get service by ID
   const getServiceById = (id: number) => {
     return services.find((service) => service.id === id)
   }
@@ -95,7 +88,6 @@ const ServiceSelectionModal: React.FC<ServiceSelectionModalProps> = ({
           <DialogTitle>Chọn dịch vụ</DialogTitle>
         </DialogHeader>
 
-        {/* Selected services badges */}
         {tempSelectedIds.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-2">
             {tempSelectedIds.map((id) => {

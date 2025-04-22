@@ -14,22 +14,17 @@ export const Route = createFileRoute('/_layout/booking')({
 export default function BookingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Initialize the form using our custom hook
   const form = useBookingForm()
 
   const handleSubmit = async (values: BookingFormValues) => {
     setIsSubmitting(true)
     try {
-      // Example API call - replace with your actual API
-      // const response = await bookingService.createBooking(values);
       console.log('Booking submitted:', values)
 
-      // Show success message
       toast('Đặt lịch thành công!', {
         description: `Bạn đã đặt lịch vào lúc ${dayjs(values.appointmentDatetime).format('HH:mm DD/MM/YYYY')}`,
       })
 
-      // Reset form
       form.reset()
     } catch (error) {
       console.error('Error submitting booking:', error)

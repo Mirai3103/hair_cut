@@ -49,9 +49,7 @@ function RouteComponent() {
 
         <p className="text-gray-600 mb-6">{service.description}</p>
 
-        {/* Service Steps Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {/* Step 1 */}
           {service.steps.map((step) => (
             <div
               className="bg-white rounded-lg overflow-hidden shadow-sm"

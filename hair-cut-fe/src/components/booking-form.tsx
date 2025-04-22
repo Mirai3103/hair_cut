@@ -51,7 +51,6 @@ import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { formatMinutes } from '@/lib/duration'
 
-// Sample service data - replace with your actual data or API call
 const SERVICES = [
   { id: 1, name: 'Cắt tóc nam', price: 100000, duration: 30, category: 'Nam' },
   { id: 2, name: 'Cắt tóc nữ', price: 150000, duration: 45, category: 'Nữ' },
@@ -129,7 +128,6 @@ const BookingForm: React.FC<BookingFormProps> = ({ form, onSubmit }) => {
   )
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false)
 
-  // Generate time slots for the selected date
   useEffect(() => {
     if (selectedDate) {
       const slots = generateTimeSlots(selectedDate)
@@ -138,7 +136,6 @@ const BookingForm: React.FC<BookingFormProps> = ({ form, onSubmit }) => {
     }
   }, [selectedDate])
 
-  // Update form value when both date and time are selected
   useEffect(() => {
     if (selectedDate && selectedTimeSlot) {
       const [hours, minutes] = selectedTimeSlot.split(':').map(Number)
@@ -152,7 +149,6 @@ const BookingForm: React.FC<BookingFormProps> = ({ form, onSubmit }) => {
     }
   }, [selectedDate, selectedTimeSlot, form])
 
-  // Generate time slots from 7:00 to 24:00 with 20-minute intervals
   const generateTimeSlots = (date: Date): Array<string> => {
     const slots = []
     const currentDate = dayjs()
@@ -160,22 +156,18 @@ const BookingForm: React.FC<BookingFormProps> = ({ form, onSubmit }) => {
     const isSameDay =
       currentDate.format('YYYY-MM-DD') === selectedDay.format('YYYY-MM-DD')
 
-    // Start from 7:00 (7 * 60 minutes)
     let startMinutes = 7 * 60
-    // End at 24:00 (24 * 60 minutes)
+
     const endMinutes = 24 * 60
 
-    // If booking is for today, start from the next available slot
     if (isSameDay) {
       const currentHour = currentDate.hour()
       const currentMinute = currentDate.minute()
       const currentTotalMinutes = currentHour * 60 + currentMinute
 
-      // Round up to the next 20-minute slot plus a buffer
       startMinutes = Math.ceil((currentTotalMinutes + 40) / 20) * 20
     }
 
-    // Generate slots in 20-minute intervals
     for (let minutes = startMinutes; minutes < endMinutes; minutes += 20) {
       const hour = Math.floor(minutes / 60)
       const minute = minutes % 60
@@ -187,24 +179,20 @@ const BookingForm: React.FC<BookingFormProps> = ({ form, onSubmit }) => {
     return slots
   }
 
-  // Handle service selection from modal
   const handleServiceSelection = (serviceIds: Array<number>) => {
     setSelectedServices(serviceIds)
     form.setValue('serviceIds', serviceIds)
   }
 
-  // Format date for display
   const formatDate = (date: Date | undefined) => {
     if (!date) return ''
     return dayjs(date).format('DD/MM/YYYY')
   }
 
-  // Get service details by ID
   const getServiceById = (id: number) => {
     return SERVICES.find((service) => service.id === id)
   }
 
-  // Calculate total price and duration
   const calculateTotal = () => {
     let totalPrice = 0
     let totalDuration = 0
@@ -236,7 +224,6 @@ const BookingForm: React.FC<BookingFormProps> = ({ form, onSubmit }) => {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Phone Number Field */}
             <FormField
               control={form.control}
               name="customerPhone"
@@ -251,7 +238,6 @@ const BookingForm: React.FC<BookingFormProps> = ({ form, onSubmit }) => {
               )}
             />
 
-            {/* Services Selection Button */}
             <FormField
               control={form.control}
               name="serviceIds"
@@ -274,7 +260,6 @@ const BookingForm: React.FC<BookingFormProps> = ({ form, onSubmit }) => {
                         <PlusCircle className="h-4 w-4" />
                       </Button>
 
-                      {/* Display selected services */}
                       {selectedServices.length > 0 && (
                         <div className="flex flex-wrap gap-2">
                           {selectedServices.map((serviceId) => {
@@ -294,7 +279,6 @@ const BookingForm: React.FC<BookingFormProps> = ({ form, onSubmit }) => {
               )}
             />
 
-            {/* Date Selection */}
             <FormField
               control={form.control}
               name="appointmentDatetime"
@@ -302,7 +286,6 @@ const BookingForm: React.FC<BookingFormProps> = ({ form, onSubmit }) => {
                 <FormItem className="flex flex-col">
                   <FormLabel>Chọn ngày và giờ</FormLabel>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Date picker */}
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -333,7 +316,6 @@ const BookingForm: React.FC<BookingFormProps> = ({ form, onSubmit }) => {
                       </PopoverContent>
                     </Popover>
 
-                    {/* Time picker */}
                     <Select
                       disabled={!selectedDate || timeSlots.length === 0}
                       value={selectedTimeSlot || ''}
@@ -371,7 +353,6 @@ const BookingForm: React.FC<BookingFormProps> = ({ form, onSubmit }) => {
               )}
             />
 
-            {/* Notes Field */}
             <FormField
               control={form.control}
               name="notes"
@@ -390,7 +371,6 @@ const BookingForm: React.FC<BookingFormProps> = ({ form, onSubmit }) => {
               )}
             />
 
-            {/* Booking Summary */}
             {selectedServices.length > 0 && (
               <Accordion type="single" collapsible className="w-full">
                 <AccordionItem value="summary">
@@ -445,7 +425,6 @@ const BookingForm: React.FC<BookingFormProps> = ({ form, onSubmit }) => {
         </Button>
       </CardFooter>
 
-      {/* Service Selection Modal */}
       <ServiceSelectionModal
         isOpen={isServiceModalOpen}
         onClose={() => setIsServiceModalOpen(false)}

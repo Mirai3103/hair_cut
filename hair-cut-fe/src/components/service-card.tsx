@@ -21,7 +21,6 @@ export default function ServiceCard({
   duration,
   image,
 }: ServiceCardProps) {
-  // Hàm định dạng giá tiền theo kiểu Việt Nam
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',

@@ -20,7 +20,6 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 
-// Define types
 type AuthModalProps = {
   isOpen: boolean
   setIsOpen: (open: boolean) => void
@@ -28,7 +27,6 @@ type AuthModalProps = {
   setType: (type: 'login' | 'register') => void
 }
 
-// Login form schema
 const loginSchema = z.object({
   phoneNumber: z
     .string()
@@ -40,7 +38,6 @@ const loginSchema = z.object({
     .max(50, 'Mật khẩu không được quá 50 ký tự'),
 })
 
-// Register form schema
 const registerSchema = z
   .object({
     firstName: z
@@ -66,7 +63,6 @@ const registerSchema = z
     path: ['repeatPassword'],
   })
 
-// Define form data types
 type LoginFormValues = z.infer<typeof loginSchema>
 type RegisterFormValues = z.infer<typeof registerSchema>
 
@@ -78,7 +74,6 @@ const AuthModal: React.FC<AuthModalProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState<boolean>(false)
 
-  // Login form
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -87,7 +82,6 @@ const AuthModal: React.FC<AuthModalProps> = ({
     },
   })
 
-  // Register form
   const registerForm = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -97,11 +91,9 @@ const AuthModal: React.FC<AuthModalProps> = ({
     },
   })
 
-  // Handle login submission
   const onLoginSubmit = (data: LoginFormValues) => {
     setIsLoading(true)
 
-    // Simulate API call
     setTimeout(() => {
       console.log('Login submitted:', data)
       setIsLoading(false)
@@ -110,11 +102,9 @@ const AuthModal: React.FC<AuthModalProps> = ({
     }, 1000)
   }
 
-  // Handle registration submission
   const onRegisterSubmit = (data: RegisterFormValues) => {
     setIsLoading(true)
 
-    // Simulate API call
     setTimeout(() => {
       console.log('Registration submitted:', data)
       setIsLoading(false)
@@ -142,7 +132,6 @@ const AuthModal: React.FC<AuthModalProps> = ({
             <TabsTrigger value="register">Đăng Ký</TabsTrigger>
           </TabsList>
 
-          {/* Login Tab */}
           <TabsContent value="login">
             <Form {...loginForm}>
               <form
@@ -203,7 +192,6 @@ const AuthModal: React.FC<AuthModalProps> = ({
             </Form>
           </TabsContent>
 
-          {/* Register Tab */}
           <TabsContent value="register">
             <Form {...registerForm}>
               <form
