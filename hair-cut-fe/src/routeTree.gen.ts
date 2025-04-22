@@ -16,7 +16,9 @@ import { Route as LayoutImport } from './routes/_layout'
 import { Route as AdminIndexImport } from './routes/admin/index'
 import { Route as LayoutIndexImport } from './routes/_layout/index'
 import { Route as LayoutBookingImport } from './routes/_layout/booking'
+import { Route as AdminServicesIndexImport } from './routes/admin/services/index'
 import { Route as LayoutServicesHairCutIndexImport } from './routes/_layout/services/hair-cut/index'
+import { Route as AdminServicesIdEditImport } from './routes/admin/services/$id.edit'
 import { Route as LayoutServicesHairCutIdImport } from './routes/_layout/services/hair-cut/$id'
 
 // Create/Update Routes
@@ -50,6 +52,12 @@ const LayoutBookingRoute = LayoutBookingImport.update({
   getParentRoute: () => LayoutRoute,
 } as any)
 
+const AdminServicesIndexRoute = AdminServicesIndexImport.update({
+  id: '/services/',
+  path: '/services/',
+  getParentRoute: () => AdminRoute,
+} as any)
+
 const LayoutServicesHairCutIndexRoute = LayoutServicesHairCutIndexImport.update(
   {
     id: '/services/hair-cut/',
@@ -57,6 +65,12 @@ const LayoutServicesHairCutIndexRoute = LayoutServicesHairCutIndexImport.update(
     getParentRoute: () => LayoutRoute,
   } as any,
 )
+
+const AdminServicesIdEditRoute = AdminServicesIdEditImport.update({
+  id: '/services/$id/edit',
+  path: '/services/$id/edit',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 const LayoutServicesHairCutIdRoute = LayoutServicesHairCutIdImport.update({
   id: '/services/hair-cut/$id',
@@ -103,12 +117,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexImport
       parentRoute: typeof AdminImport
     }
+    '/admin/services/': {
+      id: '/admin/services/'
+      path: '/services'
+      fullPath: '/admin/services'
+      preLoaderRoute: typeof AdminServicesIndexImport
+      parentRoute: typeof AdminImport
+    }
     '/_layout/services/hair-cut/$id': {
       id: '/_layout/services/hair-cut/$id'
       path: '/services/hair-cut/$id'
       fullPath: '/services/hair-cut/$id'
       preLoaderRoute: typeof LayoutServicesHairCutIdImport
       parentRoute: typeof LayoutImport
+    }
+    '/admin/services/$id/edit': {
+      id: '/admin/services/$id/edit'
+      path: '/services/$id/edit'
+      fullPath: '/admin/services/$id/edit'
+      preLoaderRoute: typeof AdminServicesIdEditImport
+      parentRoute: typeof AdminImport
     }
     '/_layout/services/hair-cut/': {
       id: '/_layout/services/hair-cut/'
@@ -141,10 +169,14 @@ const LayoutRouteWithChildren =
 
 interface AdminRouteChildren {
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminServicesIndexRoute: typeof AdminServicesIndexRoute
+  AdminServicesIdEditRoute: typeof AdminServicesIdEditRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminIndexRoute: AdminIndexRoute,
+  AdminServicesIndexRoute: AdminServicesIndexRoute,
+  AdminServicesIdEditRoute: AdminServicesIdEditRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
@@ -155,7 +187,9 @@ export interface FileRoutesByFullPath {
   '/booking': typeof LayoutBookingRoute
   '/': typeof LayoutIndexRoute
   '/admin/': typeof AdminIndexRoute
+  '/admin/services': typeof AdminServicesIndexRoute
   '/services/hair-cut/$id': typeof LayoutServicesHairCutIdRoute
+  '/admin/services/$id/edit': typeof AdminServicesIdEditRoute
   '/services/hair-cut': typeof LayoutServicesHairCutIndexRoute
 }
 
@@ -163,7 +197,9 @@ export interface FileRoutesByTo {
   '/booking': typeof LayoutBookingRoute
   '/': typeof LayoutIndexRoute
   '/admin': typeof AdminIndexRoute
+  '/admin/services': typeof AdminServicesIndexRoute
   '/services/hair-cut/$id': typeof LayoutServicesHairCutIdRoute
+  '/admin/services/$id/edit': typeof AdminServicesIdEditRoute
   '/services/hair-cut': typeof LayoutServicesHairCutIndexRoute
 }
 
@@ -174,7 +210,9 @@ export interface FileRoutesById {
   '/_layout/booking': typeof LayoutBookingRoute
   '/_layout/': typeof LayoutIndexRoute
   '/admin/': typeof AdminIndexRoute
+  '/admin/services/': typeof AdminServicesIndexRoute
   '/_layout/services/hair-cut/$id': typeof LayoutServicesHairCutIdRoute
+  '/admin/services/$id/edit': typeof AdminServicesIdEditRoute
   '/_layout/services/hair-cut/': typeof LayoutServicesHairCutIndexRoute
 }
 
@@ -186,14 +224,18 @@ export interface FileRouteTypes {
     | '/booking'
     | '/'
     | '/admin/'
+    | '/admin/services'
     | '/services/hair-cut/$id'
+    | '/admin/services/$id/edit'
     | '/services/hair-cut'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/booking'
     | '/'
     | '/admin'
+    | '/admin/services'
     | '/services/hair-cut/$id'
+    | '/admin/services/$id/edit'
     | '/services/hair-cut'
   id:
     | '__root__'
@@ -202,7 +244,9 @@ export interface FileRouteTypes {
     | '/_layout/booking'
     | '/_layout/'
     | '/admin/'
+    | '/admin/services/'
     | '/_layout/services/hair-cut/$id'
+    | '/admin/services/$id/edit'
     | '/_layout/services/hair-cut/'
   fileRoutesById: FileRoutesById
 }
@@ -243,7 +287,9 @@ export const routeTree = rootRoute
     "/admin": {
       "filePath": "admin.tsx",
       "children": [
-        "/admin/"
+        "/admin/",
+        "/admin/services/",
+        "/admin/services/$id/edit"
       ]
     },
     "/_layout/booking": {
@@ -258,9 +304,17 @@ export const routeTree = rootRoute
       "filePath": "admin/index.tsx",
       "parent": "/admin"
     },
+    "/admin/services/": {
+      "filePath": "admin/services/index.tsx",
+      "parent": "/admin"
+    },
     "/_layout/services/hair-cut/$id": {
       "filePath": "_layout/services/hair-cut/$id.tsx",
       "parent": "/_layout"
+    },
+    "/admin/services/$id/edit": {
+      "filePath": "admin/services/$id.edit.tsx",
+      "parent": "/admin"
     },
     "/_layout/services/hair-cut/": {
       "filePath": "_layout/services/hair-cut/index.tsx",

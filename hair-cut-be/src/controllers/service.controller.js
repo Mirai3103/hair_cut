@@ -1,7 +1,6 @@
 import { processRequestBody } from "zod-express-middleware";
 import db from "../database/index.js";
 import z from "zod";
-
 const stepSchema = z.object({
 	stepOrder: z.number().positive(),
 	stepTitle: z.string().min(1),
@@ -12,31 +11,46 @@ const serviceSchema = z.object({
 	serviceName: z.string().min(1),
 	estimatedTime: z.number().positive(),
 	price: z.number().positive(),
-	steps: z.array(stepSchema).min(1),
+	// steps: z.array(stepSchema).optional(),
+	bannerImageUrl: z.string().optional(),
+	description: z.string().optional(),
 });
 const updateServiceSchema = serviceSchema.partial();
 const querySchema = z.object({
 	keyword: z.string().optional(),
 	page: z.coerce.number().min(1).optional(),
 	size: z.coerce.number().min(1).max(50).optional(),
-	sortBy: z.enum(["serviceName", "price", "createdAt"]).default("createdAt"),
+	sortBy: z
+		.enum(["serviceName", "price", "createdAt", "estimatedTime"])
+		.default("createdAt"),
 	sortDirection: z.enum(["asc", "desc"]).default("desc"),
 });
 
 const createService = [
 	processRequestBody(serviceSchema),
 	async (req, res) => {
-		const { serviceName, estimatedTime, price, steps } = req.body;
+		const {
+			serviceName,
+			estimatedTime,
+			price,
+			steps,
+			bannerImageUrl,
+			description,
+		} = req.body;
 		try {
+			const data = {
+				serviceName,
+				estimatedTime,
+				price,
+				createdAt: new Date(),
+				bannerImageUrl,
+				description,
+			};
+			if (steps) {
+				data.steps = { create: steps };
+			}
 			const created = await db.service.create({
-				data: {
-					serviceName,
-					estimatedTime,
-					price,
-					createdAt: new Date(),
-					steps: { create: steps },
-				},
-				include: { steps: true },
+				data: data,
 			});
 			return res.status(201).json(created);
 		} catch (err) {
@@ -54,9 +68,7 @@ const getServices = [
 			sortBy,
 			sortDirection,
 		} = querySchema.parse(req.query);
-		const where = keyword
-			? { serviceName: { contains: keyword, mode: "insensitive" } }
-			: {};
+		const where = keyword ? { serviceName: { contains: keyword } } : {};
 
 		const [services, total] = await Promise.all([
 			db.service.findMany({
@@ -92,14 +104,7 @@ const updateService = [
 				where: { id },
 				data: {
 					...req.body,
-					steps: req.body.steps
-						? {
-								deleteMany: {},
-								create: req.body.steps,
-							}
-						: undefined,
 				},
-				include: { steps: true },
 			});
 			return res.json(updated);
 		} catch (err) {

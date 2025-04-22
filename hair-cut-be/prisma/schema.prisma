@@ -45,7 +45,6 @@ model Booking {
   customerId      Int
   employeeId      Int?
   appointmentDate DateTime  @db.Date
-  appointmentTime DateTime  @db.Time
   status          Status    @default(pending)
   totalPrice      Decimal   @default(0.00) @db.Decimal(10, 2)
   notes           String?   @db.Text
