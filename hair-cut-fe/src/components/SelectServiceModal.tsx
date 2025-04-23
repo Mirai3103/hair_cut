@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Check, X } from 'lucide-react'
+import type { Service } from '@/types/service'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -18,14 +19,7 @@ import {
 } from '@/components/ui/command'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
-
-interface Service {
-  id: number
-  name: string
-  price: number
-  duration: number
-  category?: string
-}
+import { formatPrice } from '@/lib/formatters'
 
 interface ServiceSelectionModalProps {
   isOpen: boolean
@@ -53,11 +47,8 @@ const ServiceSelectionModal: React.FC<ServiceSelectionModalProps> = ({
     }
   }, [isOpen, selectedServiceIds])
 
-  const filteredServices = services.filter(
-    (service) =>
-      service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (service.category &&
-        service.category.toLowerCase().includes(searchQuery.toLowerCase())),
+  const filteredServices = services.filter((service) =>
+    service.serviceName.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
   const toggleService = (serviceId: number) => {
@@ -78,7 +69,7 @@ const ServiceSelectionModal: React.FC<ServiceSelectionModalProps> = ({
   }
 
   const getServiceById = (id: number) => {
-    return services.find((service) => service.id === id)
+    return services.find((service) => Number(service.id) == id)
   }
 
   return (
@@ -98,7 +89,7 @@ const ServiceSelectionModal: React.FC<ServiceSelectionModalProps> = ({
                   variant="secondary"
                   className="flex items-center gap-1 pl-2 pr-1"
                 >
-                  {service.name}
+                  {service.serviceName}
                   <Button
                     variant="ghost"
                     size="icon"
@@ -136,19 +127,19 @@ const ServiceSelectionModal: React.FC<ServiceSelectionModalProps> = ({
               {filteredServices.map((service) => (
                 <CommandItem
                   key={service.id}
-                  value={service.name}
+                  value={service.serviceName}
                   onSelect={() => toggleService(service.id)}
                   className="flex justify-between items-center cursor-pointer"
                 >
                   <div className="flex flex-col">
-                    <span>{service.name}</span>
+                    <span>{service.serviceName}</span>
                     <span className="text-sm text-muted-foreground">
-                      {service.duration} phút
+                      {service.estimatedTime} phút
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="font-medium">
-                      {service.price.toLocaleString()}đ
+                      {formatPrice(service.price)}
                     </span>
                     <span
                       className={cn(

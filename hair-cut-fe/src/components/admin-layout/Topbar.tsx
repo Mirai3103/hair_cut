@@ -1,19 +1,10 @@
-import { Bell, Search } from 'lucide-react'
-import { Input } from '@/components/ui/input'
+import { Bell } from 'lucide-react'
 
 export default function Topbar() {
   return (
     <header className="bg-white shadow-sm z-10">
       <div className="flex items-center justify-between p-4">
-        <div className="flex items-center w-72">
-          <div className="relative w-full">
-            <Input
-              placeholder="Tìm kiếm..."
-              className="pl-10 pr-4 py-2 w-full"
-            />
-            <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-          </div>
-        </div>
+        <div className="flex items-center w-72"></div>
         <div className="flex items-center space-x-4">
           <button className="relative p-2 text-gray-600 hover:text-blue-600">
             <Bell size={20} />

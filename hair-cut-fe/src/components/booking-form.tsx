@@ -6,9 +6,11 @@ import {
   Scissors,
 } from 'lucide-react'
 import dayjs from 'dayjs'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { useNavigate } from '@tanstack/react-router'
 import ServiceSelectionModal from './SelectServiceModal'
 import type { BookingFormValues } from '@/hooks/useBookingForm'
-import type { UseFormReturn } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -50,77 +52,20 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { formatMinutes } from '@/lib/duration'
+import serviceService from '@/services/service.service'
+import { createBooking } from '@/lib/api/bookings'
+import { formatDate } from '@/lib/formatters'
+import useBookingForm from '@/hooks/useBookingForm'
 
-const SERVICES = [
-  { id: 1, name: 'Cắt tóc nam', price: 100000, duration: 30, category: 'Nam' },
-  { id: 2, name: 'Cắt tóc nữ', price: 150000, duration: 45, category: 'Nữ' },
-  {
-    id: 3,
-    name: 'Uốn tóc',
-    price: 300000,
-    duration: 120,
-    category: 'Tạo kiểu',
-  },
-  {
-    id: 4,
-    name: 'Nhuộm tóc',
-    price: 400000,
-    duration: 90,
-    category: 'Màu sắc',
-  },
-  {
-    id: 5,
-    name: 'Gội đầu massage',
-    price: 80000,
-    duration: 30,
-    category: 'Chăm sóc',
-  },
-  {
-    id: 6,
-    name: 'Duỗi tóc',
-    price: 350000,
-    duration: 150,
-    category: 'Tạo kiểu',
-  },
-  {
-    id: 7,
-    name: 'Nối tóc',
-    price: 500000,
-    duration: 180,
-    category: 'Tạo kiểu',
-  },
-  {
-    id: 8,
-    name: 'Tạo kiểu tóc cô dâu',
-    price: 700000,
-    duration: 120,
-    category: 'Đặc biệt',
-  },
-  {
-    id: 9,
-    name: 'Cắt và tạo kiểu tóc trẻ em',
-    price: 80000,
-    duration: 25,
-    category: 'Trẻ em',
-  },
-  {
-    id: 10,
-    name: 'Điều trị tóc hư tổn',
-    price: 250000,
-    duration: 60,
-    category: 'Chăm sóc',
-  },
-]
+interface BookingFormProps {}
 
-interface BookingFormProps {
-  form: UseFormReturn<BookingFormValues>
-  onSubmit: (values: BookingFormValues) => void
-}
+const BookingForm: React.FC<BookingFormProps> = () => {
+  const form = useBookingForm()
 
-const BookingForm: React.FC<BookingFormProps> = ({ form, onSubmit }) => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
     form.getValues().appointmentDatetime,
   )
+  const navigate = useNavigate()
   const [timeSlots, setTimeSlots] = useState<Array<string>>([])
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null)
   const [selectedServices, setSelectedServices] = useState<Array<number>>(
@@ -148,6 +93,64 @@ const BookingForm: React.FC<BookingFormProps> = ({ form, onSubmit }) => {
       form.setValue('appointmentDatetime', dateTime)
     }
   }, [selectedDate, selectedTimeSlot, form])
+  const { data } = useQuery({
+    queryKey: ['services'],
+    queryFn: () =>
+      serviceService.queryServices({
+        sortBy: 'createdAt',
+        sortDirection: 'desc',
+        page: 1,
+        size: 10000,
+      }),
+    select: (d) => d.data.data,
+  })
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: (values: BookingFormValues) => {
+      return createBooking({
+        appointmentDate: dayjs(values.appointmentDatetime).toISOString(),
+        phoneNumber: values.customerPhone,
+        serviceIds: values.serviceIds,
+        notes: values.notes,
+      })
+    },
+    onSuccess: () => {
+      form.reset()
+      setSelectedDate(undefined)
+      setSelectedServices([])
+      setSelectedTimeSlot(null)
+      setTimeSlots([])
+      toast.success('Đặt lịch thành công!', {
+        description: `Bạn đã đặt lịch vào lúc ${dayjs(
+          form.getValues().appointmentDatetime,
+        ).format('HH:mm DD/MM/YYYY')}`,
+      })
+      navigate({ to: '/' })
+    },
+    onError: () => {
+      toast.error('Đặt lịch thất bại', {
+        description: 'Có lỗi xảy ra khi đặt lịch. Vui lòng thử lại sau.',
+      })
+    },
+  })
+  const onSubmit = (values: BookingFormValues) => {
+    if (!selectedTimeSlot) {
+      toast.error('Vui lòng chọn giờ hẹn')
+      return
+    }
+
+    const [hours, minutes] = selectedTimeSlot.split(':').map(Number)
+    const dateTime = dayjs(selectedDate)
+      .hour(hours)
+      .minute(minutes)
+      .second(0)
+      .toDate()
+
+    mutate({
+      ...values,
+      appointmentDatetime: dateTime,
+    })
+  }
 
   const generateTimeSlots = (date: Date): Array<string> => {
     const slots = []
@@ -184,13 +187,8 @@ const BookingForm: React.FC<BookingFormProps> = ({ form, onSubmit }) => {
     form.setValue('serviceIds', serviceIds)
   }
 
-  const formatDate = (date: Date | undefined) => {
-    if (!date) return ''
-    return dayjs(date).format('DD/MM/YYYY')
-  }
-
   const getServiceById = (id: number) => {
-    return SERVICES.find((service) => service.id === id)
+    return data?.find((service) => service.id === id)
   }
 
   const calculateTotal = () => {
@@ -200,8 +198,8 @@ const BookingForm: React.FC<BookingFormProps> = ({ form, onSubmit }) => {
     selectedServices.forEach((serviceId) => {
       const service = getServiceById(serviceId)
       if (service) {
-        totalPrice += service.price
-        totalDuration += service.duration
+        totalPrice += Number(service.price)
+        totalDuration += Number(service.estimatedTime)
       }
     })
 
@@ -266,7 +264,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ form, onSubmit }) => {
                             const service = getServiceById(serviceId)
                             return service ? (
                               <Badge key={serviceId} variant="secondary">
-                                {service.name}
+                                {service.serviceName}
                               </Badge>
                             ) : null
                           })}
@@ -390,7 +388,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ form, onSubmit }) => {
                             key={serviceId}
                             className="flex justify-between text-sm pl-2"
                           >
-                            <span>{service.name}</span>
+                            <span>{service.serviceName}</span>
                             <span>{service.price.toLocaleString()}đ</span>
                           </div>
                         ) : null
@@ -416,19 +414,17 @@ const BookingForm: React.FC<BookingFormProps> = ({ form, onSubmit }) => {
           className="w-full bg-blue-900 hover:bg-blue-800"
           onClick={form.handleSubmit(onSubmit)}
           disabled={
-            form.formState.isSubmitting ||
-            selectedServices.length === 0 ||
-            !selectedTimeSlot
+            isPending || selectedServices.length === 0 || !selectedTimeSlot
           }
         >
-          {form.formState.isSubmitting ? 'Đang xử lý...' : 'Đặt lịch ngay'}
+          {isPending ? 'Đang xử lý...' : 'Đặt lịch ngay'}
         </Button>
       </CardFooter>
 
       <ServiceSelectionModal
         isOpen={isServiceModalOpen}
         onClose={() => setIsServiceModalOpen(false)}
-        services={SERVICES}
+        services={(data as any) || []}
         selectedServiceIds={selectedServices}
         onConfirm={handleServiceSelection}
       />

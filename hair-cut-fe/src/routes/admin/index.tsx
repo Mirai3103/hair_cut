@@ -205,7 +205,7 @@ export default function AdminDashboard() {
         </div>
         <div className="px-6 py-4 border-t">
           <a
-            href="/admin/appointments"
+            href="/admin/bookings"
             className="text-blue-600 hover:text-blue-900 text-sm font-medium"
           >
             Xem tất cả lịch hẹn

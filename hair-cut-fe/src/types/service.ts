@@ -26,15 +26,15 @@ export interface Step {
 }
 
 export interface Service {
-  id: string
+  id: number
   serviceName: string
   estimatedTime: number
   price: number
   description: string
   bannerImageUrl: string
   steps?: Array<Step>
-  createdAt: string
-  updatedAt: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 // Schema for general service info (without steps)

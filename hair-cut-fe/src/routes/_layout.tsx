@@ -1,12 +1,26 @@
 import { Outlet, createFileRoute } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
-import { Menu, Scissors } from 'lucide-react'
+import {
+  ChevronDown,
+  LogOut,
+  Menu,
+  Scissors,
+  Settings,
+  User,
+} from 'lucide-react'
 import { useState } from 'react'
 import TanstackQueryLayout from '../integrations/tanstack-query/layout'
 import { Toaster } from '@/components/ui/sonner'
 import { Button } from '@/components/ui/button'
 import AuthModal from '@/components/AuthModal'
 import { useAuth } from '@/contexts/AuthContext'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 export const Route = createFileRoute('/_layout')({
   component: RouteComponent,
@@ -14,11 +28,21 @@ export const Route = createFileRoute('/_layout')({
 
 function RouteComponent() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
-  const { isAuth, user } = useAuth()
+  const { isAuth, user, refreshUser } = useAuth()
   const [authType, setAuthType] = useState<'login' | 'register'>('login')
+
+  const isStaff =
+    user?.role === 'admin' ||
+    user?.role === 'receptionist' ||
+    user?.role === 'barber'
+
+  const handleLogout = () => {
+    localStorage.removeItem('access_token')
+    refreshUser()
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {}
       <header className="bg-white shadow-sm">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center space-x-8">
@@ -70,23 +94,62 @@ function RouteComponent() {
           </div>
           <div className="flex items-center space-x-4">
             {isAuth && user ? (
-              <Button
-                variant="outline"
-                className="hidden cursor-pointer md:flex border-blue-800 text-blue-800 hover:bg-blue-50"
-                // todo: add link to profile page
-              >
-                {user.fullName || user.phone}
-              </Button>
+              <div className="hidden md:block">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="border-blue-800 text-blue-800 hover:bg-blue-50 flex items-center gap-2"
+                    >
+                      <span className="font-medium truncate max-w-xs">
+                        {user.fullName || user.phone}
+                      </span>
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56 mt-1" align="end">
+                    <div className="px-3 py-2 text-sm font-medium text-gray-700 border-b">
+                      <div className="truncate text-lg font-semibold">
+                        {user.fullName}
+                      </div>
+                      <div className="text-gray-500 truncate text-xs mt-0.5">
+                        {user.phone}
+                      </div>
+                    </div>
+                    <DropdownMenuItem className="cursor-pointer">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Cá nhân</span>
+                    </DropdownMenuItem>
+
+                    {isStaff && (
+                      <DropdownMenuItem className="cursor-pointer">
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Trang quản trị</span>
+                      </DropdownMenuItem>
+                    )}
+
+                    <DropdownMenuSeparator />
+
+                    <DropdownMenuItem
+                      onClick={handleLogout}
+                      className="cursor-pointer text-red-600 focus:text-red-700"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Đăng xuất</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             ) : (
               <Button
                 variant="outline"
                 className="hidden cursor-pointer md:flex border-blue-800 text-blue-800 hover:bg-blue-50"
                 onClick={() => {
-                  setAuthType('register')
+                  setAuthType('login')
                   setIsAuthModalOpen(true)
                 }}
               >
-                Đăng ký
+                Đăng nhập
               </Button>
             )}
 

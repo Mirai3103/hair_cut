@@ -43,7 +43,7 @@ export default function Sidebar({ open, toggle }: Props) {
           {[
             { href: '/admin', icon: <Home size={20} />, label: 'Dashboard' },
             {
-              href: '/admin/appointments',
+              href: '/admin/bookings',
               icon: <Calendar size={20} />,
               label: 'Lịch hẹn',
             },

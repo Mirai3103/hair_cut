@@ -1,17 +1,11 @@
 import { processRequestBody } from "zod-express-middleware";
 import db from "../database/index.js";
 import z from "zod";
-const stepSchema = z.object({
-	stepOrder: z.number().positive(),
-	stepTitle: z.string().min(1),
-	stepDescription: z.string().optional(),
-	stepImageUrl: z.string().optional(),
-});
+
 const serviceSchema = z.object({
 	serviceName: z.string().min(1),
 	estimatedTime: z.number().positive(),
 	price: z.number().positive(),
-	// steps: z.array(stepSchema).optional(),
 	bannerImageUrl: z.string().optional(),
 	description: z.string().optional(),
 });
@@ -19,7 +13,7 @@ const updateServiceSchema = serviceSchema.partial();
 const querySchema = z.object({
 	keyword: z.string().optional(),
 	page: z.coerce.number().min(1).optional(),
-	size: z.coerce.number().min(1).max(50).optional(),
+	size: z.coerce.number().min(1).max(20000).optional(),
 	sortBy: z
 		.enum(["serviceName", "price", "createdAt", "estimatedTime"])
 		.default("createdAt"),

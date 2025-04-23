@@ -1,17 +1,17 @@
-import { processRequestBody } from "zod-express-middleware";
+import {
+	processRequestBody,
+	processRequestParams,
+} from "zod-express-middleware";
 import db from "../database/index.js";
 import z from "zod";
+import authService from "../services/auth.service.js";
 
-// Status enum có thể là "pending", "confirmed", "cancelled", etc.
 const bookingSchema = z.object({
-	customerId: z.number().int().positive(),
-	employeeId: z.number().int().positive().optional(),
+	phoneNumber: z.string().min(1),
 	appointmentDate: z.string().refine((val) => !isNaN(Date.parse(val)), {
 		message: "appointmentDate must be a valid date",
 	}),
-	serviceIds: z.array(z.number().int().positive()).optional(),
-	status: z.enum(["pending", "confirmed", "cancelled"]).optional(),
-	totalPrice: z.number().nonnegative().default(0),
+	serviceIds: z.array(z.number().int().positive()).min(1),
 	notes: z.string().optional(),
 });
 
@@ -21,29 +21,36 @@ const createBooking = [
 	processRequestBody(bookingSchema),
 	async (req, res) => {
 		try {
-			const {
-				customerId,
-				employeeId,
-				appointmentDate,
-				status,
-				totalPrice,
-				notes,
-			} = req.body;
-
+			const { phoneNumber, appointmentDate, serviceIds, notes } =
+				req.body;
+			const user = await authService.getUserByPhoneOrCreate(phoneNumber);
+			if (!user)
+				return res
+					.status(500)
+					.json({ message: "Something went wrong" });
+			const allServices = await db.service.findMany({
+				where: { id: { in: serviceIds } },
+			});
+			const totalPrice = allServices.reduce((acc, service) => {
+				return acc + Number(service.price);
+			}, 0);
 			const booking = await db.booking.create({
 				data: {
-					customerId,
-					employeeId,
+					customerId: user.id,
 					appointmentDate: new Date(appointmentDate),
-					status,
-					totalPrice,
+					employeeId: null,
 					notes,
+					status: "pending",
+					totalPrice,
 					createdAt: new Date(),
 					updatedAt: new Date(),
-					services: {
-						connect: req.body.serviceIds?.map((id) => ({ id })),
-					},
 				},
+			});
+			await db.bookingService.createMany({
+				data: serviceIds.map((serviceId) => ({
+					bookingId: booking.id,
+					serviceId,
+				})),
 			});
 
 			return res.status(201).json(booking);
@@ -53,20 +60,113 @@ const createBooking = [
 	},
 ];
 
-const getBookings = async (req, res) => {
-	try {
-		const bookings = await db.booking.findMany({
-			include: {
-				customer: true,
-				employee: true,
-				services: true,
-			},
-		});
-		return res.json(bookings);
-	} catch (err) {
-		return res.status(500).json({ error: err.message });
-	}
-};
+const querySchema = z.object({
+	keyword: z.string().optional(),
+	page: z.coerce.number().min(1).optional(),
+	size: z.coerce.number().min(1).max(20000).optional(),
+	sortBy: z
+		.enum([
+			"id",
+			"appointmentDate",
+			"status",
+			"totalPrice",
+			"createdAt",
+			"updatedAt",
+		])
+		.default("createdAt"),
+	sortDirection: z.enum(["asc", "desc"]).default("desc"),
+	employeeId: z.coerce.number().int().optional(),
+
+	status: z
+		.enum([
+			"pending",
+			"confirmed",
+			"cancelled",
+			"in_progress",
+			"completed",
+			"success",
+		])
+		.optional(),
+	dateFrom: z.string().date().optional(),
+	dateTo: z.string().date().optional(),
+});
+
+const getBookings = [
+	processRequestParams(querySchema),
+	async (req, res) => {
+		const {
+			keyword,
+			page,
+			size,
+			sortBy,
+			sortDirection,
+			employeeId,
+			status,
+			dateFrom,
+			dateTo,
+		} = req.query;
+
+		// 1. Build WHERE clause
+		const where = {};
+
+		if (employeeId !== undefined) {
+			where.employeeId = Number(employeeId);
+		}
+		if (status) {
+			where.status = status;
+		}
+		if (dateFrom || dateTo) {
+			where.appointmentDate = {
+				...(dateFrom && { gte: dateFrom }),
+				...(dateTo && { lte: dateTo }),
+			};
+		}
+		if (keyword) {
+			where.OR = [
+				{
+					customer: {
+						phone: { contains: keyword },
+					},
+				},
+				{
+					customer: {
+						fullName: { contains: keyword },
+					},
+				},
+				{
+					customer: {
+						CCCD: { contains: keyword },
+					},
+				},
+			];
+		}
+
+		try {
+			// 2. Query total count (nếu cần)
+			const total = await db.booking.count({ where });
+
+			// 3. Lấy dữ liệu với include relations, pagination, sort
+			const bookings = await db.booking.findMany({
+				where,
+				include: {
+					customer: true,
+					employee: true,
+				},
+				orderBy: { [sortBy]: sortDirection },
+				skip: (page - 1) * size,
+				take: Number(size),
+			});
+
+			return res.json({
+				data: bookings,
+				meta: { total, page, size },
+			});
+		} catch (err) {
+			console.error(err);
+			return res.status(500).json({ error: err.message });
+		}
+	},
+];
 
 const getBookingById = async (req, res) => {
 	const id = Number(req.params.id);
@@ -126,11 +226,42 @@ const deleteBooking = async (req, res) => {
 		return res.status(500).json({ error: err.message });
 	}
 };
+const changeBookingStatus = [
+	processRequestBody(
+		z.object({
+			status: z.enum([
+				"pending",
+				"confirmed",
+				"cancelled",
+				"in_progress",
+				"completed",
+				"success",
+			]),
+		})
+	),
+	async (req, res) => {
+		const id = Number(req.params.id);
+		if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
 
+		try {
+			const updated = await db.booking.update({
+				where: { id },
+				data: {
+					status: req.body.status,
+				},
+			});
+
+			return res.json(updated);
+		} catch (err) {
+			return res.status(500).json({ error: err.message });
+		}
+	},
+];
 export default {
 	createBooking,
-	getBookings: [getBookings],
+	getBookings: getBookings,
 	getBookingById: [getBookingById],
 	updateBooking,
 	deleteBooking: [deleteBooking],
+	changeBookingStatus: [changeBookingStatus],
 };

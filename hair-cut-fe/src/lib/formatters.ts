@@ -11,6 +11,10 @@ export function formatPrice(price: number) {
 }
 
 // Format date
-export function formatDate(dateString: string) {
+export function formatDate(dateString: string | Date) {
+  return dayjs(dateString).format('DD/MM/YYYY')
+}
+
+export function formatDateTime(dateString: string | Date) {
   return dayjs(dateString).format('DD/MM/YYYY HH:mm')
 }
