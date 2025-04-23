@@ -8,6 +8,7 @@ import { routeTree } from './routeTree.gen'
 
 import './styles.css'
 import reportWebVitals from './reportWebVitals.ts'
+import { AuthProvider } from './contexts/AuthContext.tsx'
 
 const router = createRouter({
   routeTree,
@@ -31,9 +32,11 @@ if (rootElement && !rootElement.innerHTML) {
   const root = ReactDOM.createRoot(rootElement)
   root.render(
     <StrictMode>
-      <TanstackQuery.Provider>
-        <RouterProvider router={router} />
-      </TanstackQuery.Provider>
+      <AuthProvider>
+        <TanstackQuery.Provider>
+          <RouterProvider router={router} />
+        </TanstackQuery.Provider>
+      </AuthProvider>
     </StrictMode>,
   )
 }

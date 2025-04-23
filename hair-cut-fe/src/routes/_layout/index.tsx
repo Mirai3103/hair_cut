@@ -12,11 +12,12 @@ import {
   Twitter,
 } from 'lucide-react'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import serviceService from '@/services/service.service'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/contexts/AuthContext'
 
 export const Route = createFileRoute('/_layout/')({
   loader: async () => {
@@ -37,7 +38,13 @@ function RouteComponent() {
   const data = useLoaderData({
     from: '/_layout/',
   })
+  const { user } = useAuth()
   const [phoneNumber, setPhoneNumber] = useState('')
+  React.useEffect(() => {
+    if (user) {
+      setPhoneNumber(user.phone)
+    }
+  }, [user])
   const handleBooking = () => {
     if (phoneNumber) {
     } else {

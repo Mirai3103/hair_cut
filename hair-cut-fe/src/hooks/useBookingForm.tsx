@@ -2,6 +2,8 @@ import { z } from 'zod'
 import dayjs from 'dayjs'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
+import React from 'react'
+import { useAuth } from '@/contexts/AuthContext'
 
 export const bookingFormSchema = z.object({
   customerPhone: z.string().regex(/^\d{10,11}$/, {
@@ -20,13 +22,20 @@ export type BookingFormValues = z.infer<typeof bookingFormSchema>
 export default function useBookingForm(
   defaultValues: Partial<BookingFormValues> = {},
 ) {
+  const { user } = useAuth()
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingFormSchema),
     defaultValues: {
       customerPhone: '',
       appointmentDatetime: dayjs().add(2, 'hour').toDate(),
       ...defaultValues,
+      serviceIds: [],
     },
   })
+  React.useEffect(() => {
+    if (user) {
+      form.setValue('customerPhone', user.phone)
+    }
+  }, [user, form])
   return form
 }

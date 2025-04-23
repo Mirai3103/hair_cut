@@ -98,14 +98,12 @@ model ServiceStep {
 
 model User {
   id                 Int                 @id @default(autoincrement())
-  username           String              @unique
   password           String
   email              String
   phone              String
   role               Role
-  firstName          String?
-  lastName           String?
-  gender             Boolean
+  fullName           String
+  gender             Boolean?
   address            String?
   birthDate          DateTime?           @db.Date
   CCCD               String?             @unique

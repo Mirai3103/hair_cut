@@ -1,7 +1,8 @@
-import { useState } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useMutation } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -19,6 +20,8 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import authService from '@/services/auth.service'
+import { useAuth } from '@/contexts/AuthContext'
 
 type AuthModalProps = {
   isOpen: boolean
@@ -28,10 +31,7 @@ type AuthModalProps = {
 }
 
 const loginSchema = z.object({
-  phoneNumber: z
-    .string()
-    .min(1, 'Số điện thoại không được bỏ trống')
-    .regex(/^(0|\+84)[3|5|7|8|9][0-9]{8}$/, 'Số điện thoại không hợp lệ'),
+  username: z.string().min(1, 'Tên đăng nhập không được bỏ trống'),
   password: z
     .string()
     .min(6, 'Mật khẩu phải có ít nhất 6 ký tự')
@@ -52,6 +52,10 @@ const registerSchema = z
       .string()
       .min(1, 'Số điện thoại không được bỏ trống')
       .regex(/^(0|\+84)[3|5|7|8|9][0-9]{8}$/, 'Số điện thoại không hợp lệ'),
+    email: z
+      .string()
+      .email('Email không hợp lệ')
+      .max(50, 'Email không được quá 50 ký tự'),
     password: z
       .string()
       .min(6, 'Mật khẩu phải có ít nhất 6 ký tự')
@@ -72,16 +76,14 @@ const AuthModal: React.FC<AuthModalProps> = ({
   type,
   setType,
 }) => {
-  const [isLoading, setIsLoading] = useState<boolean>(false)
-
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      phoneNumber: '',
+      username: '',
       password: '',
     },
   })
-
+  const { refreshUser } = useAuth()
   const registerForm = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -89,28 +91,83 @@ const AuthModal: React.FC<AuthModalProps> = ({
       lastName: '',
       phoneNumber: '',
     },
+    mode: 'onBlur',
   })
-
-  const onLoginSubmit = (data: LoginFormValues) => {
-    setIsLoading(true)
-
-    setTimeout(() => {
-      console.log('Login submitted:', data)
-      setIsLoading(false)
+  const { mutate: registerUser, isPending: isRegistering } = useMutation({
+    mutationFn: async (data: RegisterFormValues) =>
+      authService.registerUser({
+        email: data.email,
+        fullName: `${data.firstName} ${data.lastName}`,
+        password: data.password,
+        phone: data.phoneNumber,
+      }),
+    onSuccess: () => {
+      setType('login')
+      registerForm.reset()
+      toast.success('Đăng ký thành công!')
+    },
+    onError: (error: any) => {
+      toast.error('Đã xảy ra lỗi, vui lòng thử lại sau')
+    },
+  })
+  const { mutate: loginUser, isPending: isLogining } = useMutation({
+    mutationFn: async (data: LoginFormValues) =>
+      authService.loginUser({
+        username: data.username,
+        password: data.password,
+      }),
+    onSuccess: (data) => {
       setIsOpen(false)
       loginForm.reset()
-    }, 1000)
+      toast.success('Đăng nhập thành công!')
+      localStorage.setItem('access_token', data.accessToken)
+      refreshUser()
+    },
+    onError: (error: any) => {
+      toast.error('Đã xảy ra lỗi, vui lòng thử lại sau')
+    },
+  })
+  const { mutateAsync: isEmailRegistered } = useMutation({
+    mutationFn: async (email: string) => authService.isEmailRegistered(email),
+  })
+  const { mutateAsync: isPhoneRegistered } = useMutation({
+    mutationFn: async (phone: string) => authService.isPhoneRegistered(phone),
+  })
+  const handleEmailBlur = async () => {
+    const email = registerForm.getValues('email')
+    if (!email || registerForm.formState.errors.email) return
+    const isRegistered = await isEmailRegistered(email)
+    if (isRegistered) {
+      registerForm.setError('email', {
+        type: 'manual',
+        message: 'Email đã được sử dụng',
+      })
+    } else {
+      registerForm.clearErrors('email')
+    }
+  }
+  const handlePhoneBlur = async () => {
+    const phone = registerForm.getValues('phoneNumber')
+    if (!phone || registerForm.formState.errors.phoneNumber) return
+    const isRegistered = await isPhoneRegistered(phone)
+    if (isRegistered) {
+      registerForm.setError('phoneNumber', {
+        type: 'manual',
+        message: 'Số điện thoại đã được sử dụng',
+      })
+    } else {
+      registerForm.clearErrors('phoneNumber')
+    }
+  }
+
+  const onLoginSubmit = (data: LoginFormValues) => {
+    if (isLogining) return
+    loginUser(data)
   }
 
   const onRegisterSubmit = (data: RegisterFormValues) => {
-    setIsLoading(true)
-
-    setTimeout(() => {
-      console.log('Registration submitted:', data)
-      setIsLoading(false)
-      setIsOpen(false)
-      registerForm.reset()
-    }, 1000)
+    if (isRegistering) return
+    registerUser(data)
   }
 
   return (
@@ -140,10 +197,10 @@ const AuthModal: React.FC<AuthModalProps> = ({
               >
                 <FormField
                   control={loginForm.control}
-                  name="phoneNumber"
+                  name="username"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Số điện thoại</FormLabel>
+                      <FormLabel>Email/Số điện thoại</FormLabel>
                       <FormControl>
                         <Input placeholder="Nhập số điện thoại" {...field} />
                       </FormControl>
@@ -184,9 +241,9 @@ const AuthModal: React.FC<AuthModalProps> = ({
                 <Button
                   type="submit"
                   className="w-full bg-blue-900 hover:bg-blue-800"
-                  disabled={isLoading}
+                  disabled={isLogining}
                 >
-                  {isLoading ? 'Đang xử lý...' : 'Đăng Nhập'}
+                  {isLogining ? 'Đang xử lý...' : 'Đăng Nhập'}
                 </Button>
               </form>
             </Form>
@@ -231,11 +288,38 @@ const AuthModal: React.FC<AuthModalProps> = ({
                 <FormField
                   control={registerForm.control}
                   name="phoneNumber"
-                  render={({ field }) => (
+                  render={({ field: { onBlur, ...rest } }) => (
                     <FormItem>
                       <FormLabel>Số điện thoại</FormLabel>
                       <FormControl>
-                        <Input placeholder="Nhập số điện thoại" {...field} />
+                        <Input
+                          placeholder="Nhập số điện thoại"
+                          {...rest}
+                          onBlur={(e) => {
+                            onBlur()
+                            handlePhoneBlur()
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={registerForm.control}
+                  name="email"
+                  render={({ field: { onBlur, ...rest } }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Nhập email"
+                          {...rest}
+                          onBlur={(e) => {
+                            onBlur()
+                            handleEmailBlur()
+                          }}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -279,9 +363,9 @@ const AuthModal: React.FC<AuthModalProps> = ({
                 <Button
                   type="submit"
                   className="w-full bg-blue-900 hover:bg-blue-800"
-                  disabled={isLoading}
+                  disabled={isRegistering}
                 >
-                  {isLoading ? 'Đang xử lý...' : 'Đăng Ký'}
+                  {isRegistering ? 'Đang xử lý...' : 'Đăng Ký'}
                 </Button>
 
                 <p className="text-center text-sm text-muted-foreground">

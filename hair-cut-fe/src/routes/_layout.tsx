@@ -6,6 +6,7 @@ import TanstackQueryLayout from '../integrations/tanstack-query/layout'
 import { Toaster } from '@/components/ui/sonner'
 import { Button } from '@/components/ui/button'
 import AuthModal from '@/components/AuthModal'
+import { useAuth } from '@/contexts/AuthContext'
 
 export const Route = createFileRoute('/_layout')({
   component: RouteComponent,
@@ -13,6 +14,7 @@ export const Route = createFileRoute('/_layout')({
 
 function RouteComponent() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
+  const { isAuth, user } = useAuth()
   const [authType, setAuthType] = useState<'login' | 'register'>('login')
   return (
     <div className="min-h-screen bg-gray-50">
@@ -67,16 +69,27 @@ function RouteComponent() {
             </nav>
           </div>
           <div className="flex items-center space-x-4">
-            <Button
-              variant="outline"
-              className="hidden cursor-pointer md:flex border-blue-800 text-blue-800 hover:bg-blue-50"
-              onClick={() => {
-                setAuthType('login')
-                setIsAuthModalOpen(true)
-              }}
-            >
-              Đăng nhập
-            </Button>
+            {isAuth && user ? (
+              <Button
+                variant="outline"
+                className="hidden cursor-pointer md:flex border-blue-800 text-blue-800 hover:bg-blue-50"
+                // todo: add link to profile page
+              >
+                {user.fullName || user.phone}
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                className="hidden cursor-pointer md:flex border-blue-800 text-blue-800 hover:bg-blue-50"
+                onClick={() => {
+                  setAuthType('register')
+                  setIsAuthModalOpen(true)
+                }}
+              >
+                Đăng ký
+              </Button>
+            )}
+
             <Button variant="ghost" size="icon" className="md:hidden">
               <Menu className="h-6 w-6" />
             </Button>
