@@ -74,7 +74,9 @@ function RouteComponent() {
 
       <div className="w-full flex justify-center">
         <button className="bg-blue-100 hover:bg-blue-200 mx-auto text-xl py-5 px-15 cursor-pointer text-blue-900 font-bold rounded-md whitespace-nowrap">
-          <Link to="/booking"> ĐẶT LỊCH NGAY</Link>
+          <Link to="/booking" search={{ serviceIds: service.id }}>
+            ĐẶT LỊCH NGAY
+          </Link>
         </button>
       </div>
     </main>

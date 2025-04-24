@@ -21,6 +21,13 @@ export function ServiceEditPage() {
   } = useQuery({
     queryKey: ['service', id],
     queryFn: () => getServiceById(id),
+    select: (data) => {
+      const steps = data.steps
+      return {
+        ...data,
+        steps: steps.sort((a: any, b: any) => a.stepOrder - b.stepOrder),
+      }
+    },
   })
 
   if (isLoading) {

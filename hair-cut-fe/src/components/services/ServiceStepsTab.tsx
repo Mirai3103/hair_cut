@@ -1,37 +1,35 @@
-// /src/routes/admin-services/components/edit/ServiceStepsTab.tsx
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowDown, ArrowUp, Edit, ImageIcon, Plus, Trash2 } from 'lucide-react'
+import { Edit, GripVertical, Plus, Save, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { StepFormModal } from '../StepFormModal'
+import type { DragEndEvent } from '@dnd-kit/core'
 import type { Service, Step } from '@/types/service'
-import { stepSchema } from '@/types/service'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,146 +40,410 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  createStep,
+  deleteStep,
+  updateStep,
+  updateStepOrder,
+} from '@/lib/api/step'
+
+const TOAST_MESSAGES = {
+  updateSuccess: {
+    title: 'Cập nhật thành công',
+    description: 'Các bước thực hiện đã được cập nhật.',
+  },
+  updateError: {
+    title: 'Cập nhật thất bại',
+    description: 'Đã xảy ra lỗi khi cập nhật các bước.',
+  },
+  deleteSuccess: {
+    title: 'Xóa bước thành công',
+    description: 'Bước thực hiện đã được xóa.',
+  },
+  deleteError: {
+    title: 'Xóa bước thất bại',
+    description: 'Đã xảy ra lỗi khi xóa bước.',
+  },
+  savePositionSuccess: {
+    title: 'Lưu vị trí thành công',
+    description: 'Thứ tự các bước đã được cập nhật.',
+  },
+  savePositionError: {
+    title: 'Lưu vị trí thất bại',
+    description: 'Đã xảy ra lỗi khi lưu thứ tự các bước.',
+  },
+}
+
+function SortableTableRow({
+  step,
+  onEdit,
+  onDelete,
+}: {
+  step: Step
+  onEdit: (step: Step) => void
+  onDelete: (step: Step) => void
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: step.stepOrder.toString() })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+
+  const handleEdit = useCallback(() => onEdit(step), [step, onEdit])
+  const handleDelete = useCallback(() => onDelete(step), [step, onDelete])
+
+  return (
+    <TableRow
+      ref={setNodeRef}
+      style={style}
+      className={isDragging ? 'bg-gray-50' : ''}
+    >
+      <TableCell className="w-10 pr-0">
+        <div className="cursor-grab" {...attributes} {...listeners}>
+          <GripVertical size={16} className="text-gray-400" />
+        </div>
+      </TableCell>
+      <TableCell className="text-center font-medium">
+        {step.stepOrder}
+      </TableCell>
+      <TableCell>{step.stepTitle}</TableCell>
+      <TableCell className="max-w-xs truncate">
+        {step.stepDescription}
+      </TableCell>
+      <TableCell>
+        {step.stepImageUrl && (
+          <div className="h-10 w-10 rounded bg-gray-100 flex items-center justify-center overflow-hidden">
+            <img
+              src={step.stepImageUrl}
+              alt={step.stepTitle}
+              className="h-full w-full object-cover"
+            />
+          </div>
+        )}
+      </TableCell>
+      <TableCell className="text-right">
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleEdit}
+            className="h-8 w-8 p-0"
+          >
+            <Edit size={16} className="text-blue-600" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleDelete}
+            className="h-8 w-8 p-0"
+          >
+            <Trash2 size={16} className="text-red-600" />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  )
+}
 
 interface ServiceStepsTabProps {
   service: Service
   serviceId: string
 }
 
+interface ModalState {
+  isAddOpen: boolean
+  isEditOpen: boolean
+  isDeleteOpen: boolean
+  currentStep: Step | null
+}
+
 export function ServiceStepsTab({ service, serviceId }: ServiceStepsTabProps) {
   const queryClient = useQueryClient()
-  const [steps, setSteps] = useState<Array<Step>>(service.steps || [])
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [currentStep, setCurrentStep] = useState<Step | null>(null)
-  const [currentStepIndex, setCurrentStepIndex] = useState<number>(-1)
-
-  const form = useForm({
-    resolver: zodResolver(stepSchema),
-    defaultValues: {
-      stepOrder: steps.length + 1,
-      stepTitle: '',
-      stepDescription: '',
-      stepImageUrl: '',
-    },
+  const [steps, setSteps] = useState<Array<Step>>([])
+  const [modalState, setModalState] = useState<ModalState>({
+    isAddOpen: false,
+    isEditOpen: false,
+    isDeleteOpen: false,
+    currentStep: null,
   })
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
 
-  const updateStepsMutation = useMutation({
-    mutationFn: async (updatedSteps: Array<Step>) => {
-      await Promise.resolve(updatedSteps)
-    },
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  )
+
+  useEffect(() => {
+    if (service.steps?.length) {
+      setSteps(service.steps)
+      setHasUnsavedChanges(false)
+    } else {
+      setSteps([])
+    }
+  }, [service])
+
+  const serviceQueryKeys = useMemo(
+    () => ({
+      services: ['services'],
+      service: ['service', serviceId],
+    }),
+    [serviceId],
+  )
+
+  const invalidateServiceQueries = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: serviceQueryKeys.services })
+    queryClient.invalidateQueries({ queryKey: serviceQueryKeys.service })
+  }, [queryClient, serviceQueryKeys])
+
+  const createStepMutation = useMutation({
+    mutationFn: createStep,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['services'] })
-      queryClient.invalidateQueries({ queryKey: ['service', serviceId] })
-      toast('Cập nhật thành công', {
-        description: 'Các bước thực hiện đã được cập nhật.',
+      invalidateServiceQueries()
+      toast(TOAST_MESSAGES.updateSuccess.title, {
+        description: TOAST_MESSAGES.updateSuccess.description,
       })
     },
     onError: (error) => {
-      toast('Cập nhật thất bại', {
-        description: error.message || 'Đã xảy ra lỗi khi cập nhật các bước.',
+      toast(TOAST_MESSAGES.updateError.title, {
+        description: error.message || TOAST_MESSAGES.updateError.description,
       })
     },
   })
 
-  const openAddDialog = () => {
-    form.reset({
+  const updateStepMutation = useMutation({
+    mutationFn: async ({ id, payload }: { id: number; payload: any }) => {
+      await updateStep(String(id), payload)
+    },
+    onSuccess: () => {
+      invalidateServiceQueries()
+      toast(TOAST_MESSAGES.updateSuccess.title, {
+        description: TOAST_MESSAGES.updateSuccess.description,
+      })
+    },
+    onError: (error) => {
+      toast(TOAST_MESSAGES.updateError.title, {
+        description: error.message || TOAST_MESSAGES.updateError.description,
+      })
+    },
+  })
+
+  const updateStepOrderMutation = useMutation({
+    mutationFn: updateStepOrder,
+    onSuccess: () => {
+      invalidateServiceQueries()
+      setHasUnsavedChanges(false)
+      setIsSaving(false)
+      toast(TOAST_MESSAGES.savePositionSuccess.title, {
+        description: TOAST_MESSAGES.savePositionSuccess.description,
+      })
+    },
+    onError: (error) => {
+      setIsSaving(false)
+      toast(TOAST_MESSAGES.savePositionError.title, {
+        description:
+          error.message || TOAST_MESSAGES.savePositionError.description,
+      })
+    },
+  })
+
+  const deleteStepMutation = useMutation({
+    mutationFn: async (stepId: number) => {
+      await deleteStep(String(stepId))
+    },
+    onSuccess: () => {
+      invalidateServiceQueries()
+      toast(TOAST_MESSAGES.deleteSuccess.title, {
+        description: TOAST_MESSAGES.deleteSuccess.description,
+      })
+    },
+    onError: (error) => {
+      toast(TOAST_MESSAGES.deleteError.title, {
+        description: error.message || TOAST_MESSAGES.deleteError.description,
+      })
+    },
+  })
+
+  const openAddDialog = useCallback(() => {
+    setModalState((prev) => ({ ...prev, isAddOpen: true }))
+  }, [])
+
+  const openEditDialog = useCallback((step: Step) => {
+    setModalState((prev) => ({
+      ...prev,
+      isEditOpen: true,
+      currentStep: step,
+    }))
+  }, [])
+
+  const openDeleteDialog = useCallback((step: Step) => {
+    setModalState((prev) => ({
+      ...prev,
+      isDeleteOpen: true,
+      currentStep: step,
+    }))
+  }, [])
+
+  const closeAllDialogs = useCallback(() => {
+    setModalState((prev) => ({
+      ...prev,
+      isAddOpen: false,
+      isEditOpen: false,
+      isDeleteOpen: false,
+    }))
+  }, [])
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (!over || active.id === over.id) {
+      return
+    }
+
+    setSteps((items) => {
+      const oldIndex = items.findIndex(
+        (item) => item.stepOrder.toString() === active.id.toString(),
+      )
+      const newIndex = items.findIndex(
+        (item) => item.stepOrder.toString() === over.id.toString(),
+      )
+
+      const reorderedItems = arrayMove(items, oldIndex, newIndex)
+      const updatedItems = reorderedItems.map((step, index) => ({
+        ...step,
+        stepOrder: index + 1,
+      }))
+
+      setHasUnsavedChanges(true)
+      return updatedItems
+    })
+  }, [])
+
+  const handleSavePositions = useCallback(async () => {
+    if (!steps.length) return
+
+    try {
+      setIsSaving(true)
+      const payload = steps
+        .filter((step) => step.id)
+        .map((step) => ({
+          stepId: step.id!,
+          order: step.stepOrder,
+        }))
+
+      updateStepOrderMutation.mutate(payload)
+    } catch (error: any) {
+      setIsSaving(false)
+      toast(TOAST_MESSAGES.savePositionError.title, {
+        description:
+          error.message || TOAST_MESSAGES.savePositionError.description,
+      })
+    }
+  }, [steps, updateStepOrderMutation])
+
+  const handleResetPositions = useCallback(() => {
+    setSteps(service.steps || [])
+    setHasUnsavedChanges(false)
+  }, [service.steps])
+
+  const handleAddStep = useCallback(
+    (data: any) => {
+      createStepMutation.mutate({
+        serviceId: Number(serviceId),
+        stepName: data.stepTitle,
+        description: data.stepDescription,
+        imageUrl: data.stepImageUrl,
+      })
+      closeAllDialogs()
+    },
+    [serviceId, createStepMutation, closeAllDialogs],
+  )
+
+  const handleEditStep = useCallback(
+    (data: any) => {
+      const { currentStep } = modalState
+
+      if (!currentStep?.id) return
+
+      updateStepMutation.mutate({
+        id: currentStep.id,
+        payload: {
+          stepId: currentStep.id,
+          stepName: data.stepTitle,
+          description: data.stepDescription,
+          imageUrl: data.stepImageUrl,
+        },
+      })
+      closeAllDialogs()
+    },
+    [modalState, updateStepMutation, closeAllDialogs],
+  )
+
+  const handleDeleteStep = useCallback(() => {
+    const { currentStep } = modalState
+
+    if (!currentStep?.id) return
+
+    deleteStepMutation.mutate(currentStep.id)
+    closeAllDialogs()
+  }, [modalState, deleteStepMutation, closeAllDialogs])
+
+  const newStepDefaultValues = useMemo(
+    () => ({
       stepOrder: steps.length + 1,
       stepTitle: '',
       stepDescription: '',
       stepImageUrl: '',
-    })
-    setIsAddDialogOpen(true)
-  }
-
-  const openEditDialog = (step: Step, index: number) => {
-    setCurrentStep(step)
-    setCurrentStepIndex(index)
-    form.reset({
-      stepOrder: step.stepOrder,
-      stepTitle: step.stepTitle,
-      stepDescription: step.stepDescription || '',
-      stepImageUrl: step.stepImageUrl || '',
-    })
-    setIsEditDialogOpen(true)
-  }
-
-  const openDeleteDialog = (step: Step, index: number) => {
-    setCurrentStep(step)
-    setCurrentStepIndex(index)
-    setIsDeleteDialogOpen(true)
-  }
-
-  const handleAddStep = (data: any) => {
-    const newSteps = [...steps, data]
-    // Sort steps by order
-    newSteps.sort((a, b) => a.stepOrder - b.stepOrder)
-    setSteps(newSteps)
-    updateStepsMutation.mutate(newSteps)
-    setIsAddDialogOpen(false)
-  }
-
-  const handleEditStep = (data: any) => {
-    if (currentStepIndex === -1) return
-    const newSteps = [...steps]
-    newSteps[currentStepIndex] = data
-    // Sort steps by order
-    newSteps.sort((a, b) => a.stepOrder - b.stepOrder)
-    setSteps(newSteps)
-    updateStepsMutation.mutate(newSteps)
-    setIsEditDialogOpen(false)
-  }
-
-  const handleDeleteStep = () => {
-    if (currentStepIndex === -1) return
-    const newSteps = steps.filter((_, index) => index !== currentStepIndex)
-    // Reorder steps
-    const reorderedSteps = newSteps.map((step, index) => ({
-      ...step,
-      stepOrder: index + 1,
-    }))
-    setSteps(reorderedSteps)
-    updateStepsMutation.mutate(reorderedSteps)
-    setIsDeleteDialogOpen(false)
-  }
-
-  const moveStepUp = (index: number) => {
-    if (index <= 0) return
-    const newSteps = [...steps]
-    // Swap order numbers
-    const temp = newSteps[index].stepOrder
-    newSteps[index].stepOrder = newSteps[index - 1].stepOrder
-    newSteps[index - 1].stepOrder = temp[
-      // Swap positions
-      (newSteps[index], newSteps[index - 1])
-    ] = [newSteps[index - 1], newSteps[index]]
-    setSteps(newSteps)
-    updateStepsMutation.mutate(newSteps)
-  }
-
-  const moveStepDown = (index: number) => {
-    if (index >= steps.length - 1) return
-    const newSteps = [...steps]
-    // Swap order numbers
-    const temp = newSteps[index].stepOrder
-    newSteps[index].stepOrder = newSteps[index + 1].stepOrder
-    newSteps[index + 1].stepOrder = temp[
-      // Swap positions
-      (newSteps[index], newSteps[index + 1])
-    ] = [newSteps[index + 1], newSteps[index]]
-    setSteps(newSteps)
-    updateStepsMutation.mutate(newSteps)
-  }
+    }),
+    [steps.length],
+  )
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-lg font-medium">Các bước thực hiện dịch vụ</h3>
-        <Button onClick={openAddDialog} className="flex items-center gap-2">
-          <Plus size={16} />
-          Thêm bước mới
-        </Button>
+        <div className="flex gap-3">
+          {hasUnsavedChanges && (
+            <>
+              <Button
+                onClick={handleResetPositions}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Save size={16} />
+                Khôi phục vị trí
+              </Button>
+              <Button
+                onClick={handleSavePositions}
+                variant="outline"
+                className="flex items-center gap-2"
+                disabled={isSaving}
+              >
+                <Save size={16} />
+                {isSaving ? 'Đang lưu...' : 'Lưu vị trí'}
+              </Button>
+            </>
+          )}
+          <Button onClick={openAddDialog} className="flex items-center gap-2">
+            <Plus size={16} />
+            Thêm bước mới
+          </Button>
+        </div>
       </div>
 
       {steps.length === 0 ? (
@@ -199,266 +461,83 @@ export function ServiceStepsTab({ service, serviceId }: ServiceStepsTabProps) {
           </Button>
         </div>
       ) : (
-        <div className="space-y-4">
-          {steps.map((step, index) => (
-            <Card key={index} className="overflow-hidden">
-              <CardHeader className="bg-gray-50 flex flex-row items-center justify-between py-3">
-                <CardTitle className="text-base font-medium">
-                  Bước {step.stepOrder}: {step.stepTitle}
-                </CardTitle>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => moveStepUp(index)}
-                    disabled={index === 0}
-                    title="Di chuyển lên"
-                  >
-                    <ArrowUp size={16} />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => moveStepDown(index)}
-                    disabled={index === steps.length - 1}
-                    title="Di chuyển xuống"
-                  >
-                    <ArrowDown size={16} />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-4">
-                {step.stepDescription && (
-                  <p className="text-gray-700 mb-4">{step.stepDescription}</p>
-                )}
-                {step.stepImageUrl && (
-                  <div className="mt-2 border rounded-md overflow-hidden max-h-48 bg-gray-50">
-                    <img
-                      src={step.stepImageUrl}
-                      alt={step.stepTitle}
-                      className="w-full h-full object-contain"
+        <div className="border rounded-md">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-10"></TableHead>
+                  <TableHead className="w-16 text-center">STT</TableHead>
+                  <TableHead>Tiêu đề</TableHead>
+                  <TableHead>Mô tả</TableHead>
+                  <TableHead>Hình ảnh</TableHead>
+                  <TableHead className="w-24 text-right">Thao tác</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <SortableContext
+                  items={steps.map((step) => step.stepOrder.toString())}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {steps.map((step) => (
+                    <SortableTableRow
+                      key={`step-${step.id}-${step.stepOrder}`}
+                      step={step}
+                      onEdit={openEditDialog}
+                      onDelete={openDeleteDialog}
                     />
-                  </div>
-                )}
-              </CardContent>
-              <CardFooter className="bg-gray-50 flex justify-end gap-2 py-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-blue-600"
-                  onClick={() => openEditDialog(step, index)}
-                >
-                  <Edit size={16} className="mr-1" />
-                  Sửa
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-red-600"
-                  onClick={() => openDeleteDialog(step, index)}
-                >
-                  <Trash2 size={16} className="mr-1" />
-                  Xóa
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
+                  ))}
+                </SortableContext>
+              </TableBody>
+            </Table>
+          </DndContext>
         </div>
       )}
 
-      {/* Add Step Dialog */}
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Thêm bước thực hiện mới</DialogTitle>
-          </DialogHeader>
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(handleAddStep)}
-              className="space-y-4"
-            >
-              <FormField
-                control={form.control}
-                name="stepOrder"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Thứ tự bước</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        {...field}
-                        onChange={(e) =>
-                          field.onChange(parseInt(e.target.value))
-                        }
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="stepTitle"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tiêu đề bước</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="stepDescription"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Mô tả bước</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} rows={3} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="stepImageUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>URL hình ảnh minh họa</FormLabel>
-                    <div className="flex gap-2">
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <Button type="button" variant="outline" size="icon">
-                        <ImageIcon className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsAddDialogOpen(false)}
-                >
-                  Hủy
-                </Button>
-                <Button type="submit" disabled={updateStepsMutation.isPending}>
-                  Thêm bước
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      {/* Add Step Modal */}
+      <StepFormModal
+        isOpen={modalState.isAddOpen}
+        onOpenChange={(open) =>
+          setModalState((prev) => ({ ...prev, isAddOpen: open }))
+        }
+        onSubmit={handleAddStep}
+        title="Thêm bước thực hiện mới"
+        submitButtonText="Thêm bước"
+        defaultValues={newStepDefaultValues}
+        isSubmitting={createStepMutation.isPending}
+      />
 
-      {/* Edit Step Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Chỉnh sửa bước thực hiện</DialogTitle>
-          </DialogHeader>
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(handleEditStep)}
-              className="space-y-4"
-            >
-              <FormField
-                control={form.control}
-                name="stepOrder"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Thứ tự bước</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        {...field}
-                        onChange={(e) =>
-                          field.onChange(parseInt(e.target.value))
-                        }
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="stepTitle"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tiêu đề bước</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="stepDescription"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Mô tả bước</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} rows={3} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="stepImageUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>URL hình ảnh minh họa</FormLabel>
-                    <div className="flex gap-2">
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <Button type="button" variant="outline" size="icon">
-                        <ImageIcon className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsEditDialogOpen(false)}
-                >
-                  Hủy
-                </Button>
-                <Button type="submit" disabled={updateStepsMutation.isPending}>
-                  Cập nhật
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      {/* Edit Step Modal */}
+      <StepFormModal
+        isOpen={modalState.isEditOpen}
+        onOpenChange={(open) =>
+          setModalState((prev) => ({ ...prev, isEditOpen: open }))
+        }
+        onSubmit={handleEditStep}
+        title="Chỉnh sửa bước thực hiện"
+        submitButtonText="Cập nhật"
+        defaultValues={modalState.currentStep}
+        isSubmitting={updateStepMutation.isPending}
+      />
 
       {/* Delete Step Confirmation */}
       <AlertDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
+        open={modalState.isDeleteOpen}
+        onOpenChange={(open) =>
+          setModalState((prev) => ({ ...prev, isDeleteOpen: open }))
+        }
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Xác nhận xóa bước</AlertDialogTitle>
             <AlertDialogDescription>
-              Bạn có chắc chắn muốn xóa bước "{currentStep?.stepTitle}"? Hành
-              động này không thể hoàn tác.
+              Bạn có chắc chắn muốn xóa bước "
+              {modalState.currentStep?.stepTitle}"? Hành động này không thể hoàn
+              tác.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

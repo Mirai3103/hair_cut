@@ -54,7 +54,6 @@ export function ServiceInfoTab({ service, serviceId }: ServiceInfoTabProps) {
     })
     setPreviewImage(service.bannerImageUrl)
   }, [service, form])
-
   const updateServiceMutation = useMutation({
     mutationFn: (data: any) => updateService(serviceId, data),
     onSuccess: () => {
@@ -62,6 +61,10 @@ export function ServiceInfoTab({ service, serviceId }: ServiceInfoTabProps) {
       queryClient.invalidateQueries({ queryKey: ['service', serviceId] })
       toast('Cập nhật thành công', {
         description: 'Thông tin dịch vụ đã được cập nhật.',
+      })
+      navigate({
+        to: '/admin/services',
+        replace: true,
       })
     },
     onError: (error) => {

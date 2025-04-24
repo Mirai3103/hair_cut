@@ -23,6 +23,7 @@ export interface Step {
   stepTitle: string
   stepDescription?: string
   stepImageUrl?: string
+  id?: number
 }
 
 export interface Service {
@@ -41,7 +42,7 @@ export interface Service {
 export const serviceInfoSchema = z.object({
   serviceName: z.string().min(1, 'Tên dịch vụ không được để trống'),
   estimatedTime: z.number().positive('Thời gian phải là số dương'),
-  price: z.number().positive('Giá phải là số dương'),
+  price: z.coerce.number().positive('Giá phải là số dương'),
   description: z.string().min(1, 'Mô tả không được để trống'),
   bannerImageUrl: z.string().min(1, 'URL hình ảnh không được để trống'),
 })

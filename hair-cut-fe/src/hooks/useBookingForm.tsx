@@ -32,10 +32,27 @@ export default function useBookingForm(
       serviceIds: [],
     },
   })
+  const searchParams = new URLSearchParams(window.location.search)
+  const phoneNumber = searchParams.get('phoneNumber')
+  const initialServiceIds = searchParams.getAll('serviceIds')
+  React.useEffect(() => {
+    if (initialServiceIds.length > 0) {
+      form.setValue(
+        'serviceIds',
+        initialServiceIds
+          .map((id) => parseInt(id, 10))
+          .filter((id) => !isNaN(id)),
+      )
+    }
+  }, [initialServiceIds, form])
+
   React.useEffect(() => {
     if (user) {
       form.setValue('customerPhone', user.phone)
     }
-  }, [user, form])
+    if (phoneNumber) {
+      form.setValue('customerPhone', phoneNumber)
+    }
+  }, [user, form, phoneNumber])
   return form
 }

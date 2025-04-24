@@ -87,7 +87,14 @@ function RouteComponent() {
                 type="button"
                 asChild
               >
-                <Link to="/booking">Đặt lịch ngay</Link>
+                <Link
+                  to="/booking"
+                  search={{
+                    phoneNumber: phoneNumber,
+                  }}
+                >
+                  Đặt lịch ngay
+                </Link>
               </Button>
             </div>
           </div>

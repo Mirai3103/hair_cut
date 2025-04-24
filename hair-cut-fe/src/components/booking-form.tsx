@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   Calendar as CalendarIcon,
   Clock,
@@ -68,9 +68,7 @@ const BookingForm: React.FC<BookingFormProps> = () => {
   const navigate = useNavigate()
   const [timeSlots, setTimeSlots] = useState<Array<string>>([])
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null)
-  const [selectedServices, setSelectedServices] = useState<Array<number>>(
-    form.getValues().serviceIds,
-  )
+
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false)
 
   useEffect(() => {
@@ -117,7 +115,6 @@ const BookingForm: React.FC<BookingFormProps> = () => {
     onSuccess: () => {
       form.reset()
       setSelectedDate(undefined)
-      setSelectedServices([])
       setSelectedTimeSlot(null)
       setTimeSlots([])
       toast.success('Đặt lịch thành công!', {
@@ -183,7 +180,6 @@ const BookingForm: React.FC<BookingFormProps> = () => {
   }
 
   const handleServiceSelection = (serviceIds: Array<number>) => {
-    setSelectedServices(serviceIds)
     form.setValue('serviceIds', serviceIds)
   }
 
@@ -195,7 +191,7 @@ const BookingForm: React.FC<BookingFormProps> = () => {
     let totalPrice = 0
     let totalDuration = 0
 
-    selectedServices.forEach((serviceId) => {
+    form.getValues('serviceIds').forEach((serviceId) => {
       const service = getServiceById(serviceId)
       if (service) {
         totalPrice += Number(service.price)
@@ -251,16 +247,16 @@ const BookingForm: React.FC<BookingFormProps> = () => {
                         onClick={() => setIsServiceModalOpen(true)}
                       >
                         <span className="text-muted-foreground">
-                          {selectedServices.length === 0
+                          {form.getValues('serviceIds').length === 0
                             ? 'Chọn dịch vụ'
-                            : `${selectedServices.length} dịch vụ đã chọn`}
+                            : `${form.getValues('serviceIds').length} dịch vụ đã chọn`}
                         </span>
                         <PlusCircle className="h-4 w-4" />
                       </Button>
 
-                      {selectedServices.length > 0 && (
+                      {form.getValues('serviceIds').length > 0 && (
                         <div className="flex flex-wrap gap-2">
-                          {selectedServices.map((serviceId) => {
+                          {form.getValues('serviceIds').map((serviceId) => {
                             const service = getServiceById(serviceId)
                             return service ? (
                               <Badge key={serviceId} variant="secondary">
@@ -369,7 +365,7 @@ const BookingForm: React.FC<BookingFormProps> = () => {
               )}
             />
 
-            {selectedServices.length > 0 && (
+            {form.getValues('serviceIds').length > 0 && (
               <Accordion type="single" collapsible className="w-full">
                 <AccordionItem value="summary">
                   <AccordionTrigger className="font-medium">
@@ -379,9 +375,11 @@ const BookingForm: React.FC<BookingFormProps> = () => {
                     <div className="space-y-2">
                       <div className="flex justify-between py-1 border-b">
                         <span>Dịch vụ đã chọn:</span>
-                        <span>{selectedServices.length} dịch vụ</span>
+                        <span>
+                          {form.getValues('serviceIds').length} dịch vụ
+                        </span>
                       </div>
-                      {selectedServices.map((serviceId) => {
+                      {form.getValues('serviceIds').map((serviceId) => {
                         const service = getServiceById(serviceId)
                         return service ? (
                           <div
@@ -414,7 +412,9 @@ const BookingForm: React.FC<BookingFormProps> = () => {
           className="w-full bg-blue-900 hover:bg-blue-800"
           onClick={form.handleSubmit(onSubmit)}
           disabled={
-            isPending || selectedServices.length === 0 || !selectedTimeSlot
+            isPending ||
+            form.getValues('serviceIds').length === 0 ||
+            !selectedTimeSlot
           }
         >
           {isPending ? 'Đang xử lý...' : 'Đặt lịch ngay'}
@@ -425,7 +425,7 @@ const BookingForm: React.FC<BookingFormProps> = () => {
         isOpen={isServiceModalOpen}
         onClose={() => setIsServiceModalOpen(false)}
         services={(data as any) || []}
-        selectedServiceIds={selectedServices}
+        selectedServiceIds={form.getValues('serviceIds')}
         onConfirm={handleServiceSelection}
       />
     </Card>
