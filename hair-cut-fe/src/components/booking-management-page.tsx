@@ -16,9 +16,15 @@ import {
   X,
 } from 'lucide-react'
 
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useDebounce } from 'react-use'
 import dayjs from 'dayjs'
+import {
+  BookingStatus,
+  changeBookingStatus,
+  fetchBookings,
+  getBookingById,
+} from '@/lib/api/bookings'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -47,7 +53,7 @@ import {
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { fetchBookings } from '@/lib/api/bookings'
+
 import { formatDate, formatDateTime, formatPrice } from '@/lib/formatters'
 
 // Mock data for users (customers and employees)
@@ -181,10 +187,12 @@ const BookingRow = memo(
     booking,
     onView,
     onEdit,
+    onChangeStatus,
   }: {
     booking: Booking
     onView: (booking: Booking) => void
     onEdit: (booking: Booking) => void
+    onChangeStatus: (bookingId: string, status: BookingStatus) => void
   }) => {
     return (
       <tr key={booking.id} className="hover:bg-gray-50">
@@ -231,33 +239,53 @@ const BookingRow = memo(
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               {booking.status === 'pending' && (
-                <DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() =>
+                    onChangeStatus(booking.id + '', BookingStatus.confirmed)
+                  }
+                >
                   <Check className="h-4 w-4 mr-2" />
                   Xác nhận lịch hẹn
                 </DropdownMenuItem>
               )}
               {(booking.status === 'pending' ||
                 booking.status === 'confirmed') && (
-                <DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() =>
+                    onChangeStatus(booking.id + '', BookingStatus.in_progress)
+                  }
+                >
                   <Clock className="h-4 w-4 mr-2" />
                   Bắt đầu thực hiện
                 </DropdownMenuItem>
               )}
               {booking.status === 'in_progress' && (
-                <DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() =>
+                    onChangeStatus(booking.id + '', BookingStatus.completed)
+                  }
+                >
                   <Check className="h-4 w-4 mr-2" />
                   Hoàn thành
                 </DropdownMenuItem>
               )}
               {booking.status === 'completed' && (
-                <DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() =>
+                    onChangeStatus(booking.id + '', BookingStatus.success)
+                  }
+                >
                   <Check className="h-4 w-4 mr-2" />
                   Đánh dấu thành công
                 </DropdownMenuItem>
               )}
               {(booking.status === 'pending' ||
                 booking.status === 'confirmed') && (
-                <DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() =>
+                    onChangeStatus(booking.id + '', BookingStatus.cancelled)
+                  }
+                >
                   <X className="h-4 w-4 mr-2" />
                   Hủy lịch hẹn
                 </DropdownMenuItem>
@@ -286,8 +314,12 @@ export default function AdminBookings() {
     dateFrom: '',
     dateTo: '',
   })
+  const { data: bookingDetail } = useQuery({
+    queryKey: ['bookings', currentBooking?.id],
+    queryFn: async () => getBookingById(currentBooking!.id + ''),
+    enabled: !!currentBooking?.id,
+  })
 
-  // Debounce the search input
   useDebounce(
     () => {
       setSearchParams({ ...searchParams, keyword: searchInput, page: 1 })
@@ -296,7 +328,6 @@ export default function AdminBookings() {
     [searchInput],
   )
 
-  // Update API request when page changes
   useEffect(() => {
     setSearchParams((prev) => ({ ...prev, page: currentPage }))
   }, [currentPage])
@@ -336,12 +367,11 @@ export default function AdminBookings() {
         size: da.meta.size || 10,
       }
     },
-    staleTime: 30000, // 30 seconds
+    staleTime: 30000,
   })
 
   const employees = mockUsers.filter((user) => user.role === 'employee')
 
-  // Memoized handlers to prevent unnecessary re-renders
   const handleSearchChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setSearchInput(e.target.value)
@@ -414,6 +444,19 @@ export default function AdminBookings() {
   }, [])
 
   const totalPages = Math.ceil(data.total / searchParams.size!)
+
+  const { mutate: changeStatusMutation } = useMutation({
+    mutationFn: async ({
+      bookingId,
+      status,
+    }: {
+      bookingId: string
+      status: BookingStatus
+    }) => {
+      await changeBookingStatus(bookingId, status)
+      refetch()
+    },
+  })
 
   return (
     <>
@@ -609,6 +652,12 @@ export default function AdminBookings() {
                       booking={booking}
                       onView={handleViewBooking}
                       onEdit={handleEditBooking}
+                      onChangeStatus={(bookingId, status) =>
+                        changeStatusMutation({
+                          bookingId: bookingId,
+                          status: status,
+                        })
+                      }
                     />
                   ))
                 ) : (
@@ -721,7 +770,6 @@ export default function AdminBookings() {
                 <TabsList className="mb-4">
                   <TabsTrigger value="details">Thông tin chung</TabsTrigger>
                   <TabsTrigger value="services">Dịch vụ</TabsTrigger>
-                  <TabsTrigger value="history">Lịch sử</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="details">
@@ -850,19 +898,21 @@ export default function AdminBookings() {
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                          {currentBooking.services.map((service, index) => (
-                            <tr key={service.id}>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {index + 1}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {service.serviceName}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                                {formatPrice(service.price)}
-                              </td>
-                            </tr>
-                          ))}
+                          {bookingDetail?.services?.map(
+                            (service: any, index: any) => (
+                              <tr key={service.id}>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  {index + 1}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                  {service.service.serviceName}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                                  {formatPrice(service.service.price)}
+                                </td>
+                              </tr>
+                            ),
+                          )}
                           <tr className="bg-gray-50">
                             <td
                               colSpan={2}
@@ -876,68 +926,6 @@ export default function AdminBookings() {
                           </tr>
                         </tbody>
                       </table>
-                    </div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="history">
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-medium text-gray-500">
-                      Lịch sử thay đổi
-                    </h3>
-                    <div className="bg-gray-50 p-4 rounded-md">
-                      <div className="space-y-4">
-                        <div className="flex">
-                          <div className="flex-shrink-0">
-                            <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-                              <CalendarDays className="h-4 w-4 text-blue-600" />
-                            </div>
-                          </div>
-                          <div className="ml-4">
-                            <p className="text-sm font-medium">Tạo lịch hẹn</p>
-                            <p className="text-xs text-gray-500">
-                              {formatDate(currentBooking.createdAt)}{' '}
-                              {formatDateTime(currentBooking.createdAt)}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex">
-                          <div className="flex-shrink-0">
-                            <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-                              <RefreshCcw className="h-4 w-4 text-green-600" />
-                            </div>
-                          </div>
-                          <div className="ml-4">
-                            <p className="text-sm font-medium">
-                              Cập nhật lịch hẹn
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {formatDate(currentBooking.updatedAt)}{' '}
-                              {formatDateTime(currentBooking.updatedAt)}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Simulated status changes */}
-                        <div className="flex">
-                          <div className="flex-shrink-0">
-                            <div className="h-8 w-8 rounded-full bg-yellow-100 flex items-center justify-center">
-                              <Clock className="h-4 w-4 text-yellow-600" />
-                            </div>
-                          </div>
-                          <div className="ml-4">
-                            <p className="text-sm font-medium">
-                              Thay đổi trạng thái:{' '}
-                              <StatusBadge status={currentBooking.status} />
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {formatDate(currentBooking.updatedAt)}{' '}
-                              {formatDateTime(currentBooking.updatedAt)}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
                     </div>
                   </div>
                 </TabsContent>
@@ -1077,24 +1065,26 @@ export default function AdminBookings() {
                 </h3>
                 <div className="bg-gray-50 rounded-md p-3">
                   <div className="space-y-2">
-                    {currentBooking.services.map((service, index) => (
-                      <div
-                        key={service.id}
-                        className="flex items-center justify-between"
-                      >
-                        <div className="flex items-center">
-                          <span className="text-sm text-gray-500 mr-2">
-                            {index + 1}.
-                          </span>
-                          <span className="text-sm font-medium">
-                            {service.serviceName}
+                    {bookingDetail?.services?.map(
+                      (service: any, index: number) => (
+                        <div
+                          key={service.id}
+                          className="flex items-center justify-between"
+                        >
+                          <div className="flex items-center">
+                            <span className="text-sm text-gray-500 mr-2">
+                              {index + 1}.
+                            </span>
+                            <span className="text-sm font-medium">
+                              {service.service.serviceName}
+                            </span>
+                          </div>
+                          <span className="text-sm">
+                            {formatPrice(service.service.price)}
                           </span>
                         </div>
-                        <span className="text-sm">
-                          {formatPrice(service.price)}
-                        </span>
-                      </div>
-                    ))}
+                      ),
+                    )}
                     <div className="pt-2 border-t border-gray-200 flex justify-between">
                       <span className="font-medium">Tổng cộng</span>
                       <span className="font-bold text-blue-600">

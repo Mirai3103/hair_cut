@@ -151,6 +151,11 @@ const getBookings = [
 				include: {
 					customer: true,
 					employee: true,
+					services: {
+						include: {
+							service: true,
+						},
+					},
 				},
 				orderBy: { [sortBy]: sortDirection },
 				skip: (page - 1) * size,
@@ -178,7 +183,11 @@ const getBookingById = async (req, res) => {
 			include: {
 				customer: true,
 				employee: true,
-				services: true,
+				services: {
+					include: {
+						service: true,
+					},
+				},
 			},
 		});
 
