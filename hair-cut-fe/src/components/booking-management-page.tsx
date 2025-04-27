@@ -482,13 +482,7 @@ export default function AdminBookings() {
         {/* Filters */}
         <div className="bg-white p-4 rounded-lg shadow mb-6">
           <div className="flex flex-wrap gap-4 items-center">
-            <div className="flex items-center">
-              <Filter className="h-5 w-5 text-gray-400 mr-2" />
-              <span className="text-gray-700 font-medium">Lọc:</span>
-            </div>
-
-            {/* Search Input */}
-            <div className="flex-1 min-w-[200px]">
+            <div className="w-[200px]">
               <div className="relative">
                 <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <Input
@@ -501,7 +495,7 @@ export default function AdminBookings() {
             </div>
 
             {/* Status Filter */}
-            <div className="flex-1 min-w-[200px]">
+            <div className="w-[200px]">
               <Select
                 value={searchParams.status}
                 onValueChange={handleStatusChange}
@@ -522,7 +516,7 @@ export default function AdminBookings() {
             </div>
 
             {/* Employee Filter */}
-            <div className="flex-1 min-w-[200px]">
+            <div className="w-[200px]">
               <Select
                 value={searchParams.employeeId?.toString() || ''}
                 onValueChange={handleEmployeeChange}
@@ -545,7 +539,7 @@ export default function AdminBookings() {
             </div>
 
             {/* Date Range Filter */}
-            <div className="flex-1 min-w-[200px]">
+            <div className="w-[300px]">
               <div className="flex gap-2">
                 <div className="flex-1">
                   <Label htmlFor="dateFrom" className="text-xs text-gray-500">
@@ -575,7 +569,7 @@ export default function AdminBookings() {
             </div>
 
             {/* Sort Options */}
-            <div className="flex-1 min-w-[200px] ml-2">
+            <div className="w-[200px] ml-2">
               <Select
                 value={`${searchParams.sortBy}:${searchParams.sortDirection}`}
                 onValueChange={handleSortChange}
