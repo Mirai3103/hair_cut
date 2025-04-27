@@ -9,7 +9,6 @@ import {
   Clock,
   Edit,
   Eye,
-  Filter,
   MoreHorizontal,
   RefreshCcw,
   Search,
@@ -55,19 +54,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 import { formatDate, formatDateTime, formatPrice } from '@/lib/formatters'
-
-// Mock data for users (customers and employees)
-const mockUsers = [
-  { id: 1, fullName: 'Nguyễn Văn A', phone: '0987654321', role: 'customer' },
-  { id: 2, fullName: 'Trần Thị B', phone: '0987654322', role: 'customer' },
-  { id: 3, fullName: 'Lê Văn C', phone: '0987654323', role: 'customer' },
-  { id: 4, fullName: 'Phạm Thị D', phone: '0987654324', role: 'customer' },
-  { id: 5, fullName: 'Hoàng Văn E', phone: '0987654325', role: 'customer' },
-  { id: 101, fullName: 'Stylist Minh', phone: '0901234567', role: 'employee' },
-  { id: 102, fullName: 'Stylist Hùng', phone: '0901234568', role: 'employee' },
-  { id: 103, fullName: 'Stylist Tuấn', phone: '0901234569', role: 'employee' },
-  { id: 104, fullName: 'Stylist Dũng', phone: '0901234570', role: 'employee' },
-]
+import { fetchUsers } from '@/lib/api/users'
 
 type Status =
   | 'pending'
@@ -369,8 +356,14 @@ export default function AdminBookings() {
     },
     staleTime: 30000,
   })
-
-  const employees = mockUsers.filter((user) => user.role === 'employee')
+  const { data: employees } = useQuery({
+    queryKey: ['employees'],
+    queryFn: () =>
+      fetchUsers({
+        role: ['barber' as any],
+      }),
+    select: (d) => d.data,
+  })
 
   const handleSearchChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -526,7 +519,7 @@ export default function AdminBookings() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="0">Tất cả nhân viên</SelectItem>
-                  {employees.map((employee) => (
+                  {employees?.map((employee) => (
                     <SelectItem
                       key={employee.id}
                       value={employee.id.toString()}
@@ -1010,7 +1003,7 @@ export default function AdminBookings() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="0">Chưa phân công</SelectItem>
-                    {employees.map((employee) => (
+                    {employees?.map((employee) => (
                       <SelectItem
                         key={employee.id}
                         value={employee.id.toString()}
