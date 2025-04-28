@@ -3,9 +3,10 @@ import { PrismaClient } from "./generated";
 
 const db = new PrismaClient();
 
-// gen customer
-
 await db.user.deleteMany({});
+await db.bookingService.deleteMany({});
+await db.booking.deleteMany({});
+
 const admin = await db.user.create({
 	data: {
 		email: "admin@admin.com",
@@ -26,8 +27,8 @@ for (let i = 0; i < 20; i++) {
 			email: faker.internet.email(),
 			password: "Password",
 			fullName: faker.person.fullName(),
-			phone: faker.helpers.fromRegExp(/(0[3|5|7|8|9])+([0-9]{8})/),
-			address: faker.address.streetAddress(),
+			phone: faker.helpers.fromRegExp(/0[3|5|7|8|9][0-9]{8}/),
+			address: faker.location.streetAddress(),
 			role: "customer",
 			availabilityStatus: "available",
 			birthDate: faker.date.past({}),
@@ -50,7 +51,7 @@ for (let i = 0; i < 10; i++) {
 			password: "Password",
 			fullName: faker.person.fullName(),
 			phone: faker.helpers.fromRegExp(/(0[3|5|7|8|9])+([0-9]{8})/),
-			address: faker.address.streetAddress(),
+			address: faker.location.streetAddress(),
 			role: "barber",
 			availabilityStatus: "available",
 			birthDate: faker.date.past({}),
@@ -73,7 +74,7 @@ for (let i = 0; i < 2; i++) {
 			password: "Password",
 			fullName: faker.person.fullName(),
 			phone: faker.helpers.fromRegExp(/(0[3|5|7|8|9])+([0-9]{8})/),
-			address: faker.address.streetAddress(),
+			address: faker.location.streetAddress(),
 			role: "receptionist",
 			availabilityStatus: "available",
 			birthDate: faker.date.past({}),
@@ -87,19 +88,40 @@ for (let i = 0; i < 2; i++) {
 		},
 	});
 }
-
+function randomBookingDateTime(date) {
+	const hour = faker.number.int({ min: 7, max: 22 });
+	const minute = faker.helpers.arrayElement([0, 20, 40]);
+	const dateTime = new Date(
+		date.getFullYear(),
+		date.getMonth(),
+		date.getDate(),
+		hour,
+		minute
+	);
+	return dateTime;
+}
 // fake customer booking
-const service = await db.service.findMany({});
+const services = await db.service.findMany({});
 
 for await (const customer of customerId) {
-	const numberOfBookings = faker.number.int({ min: 1, max: 5 });
+	let numberOfBookings = faker.number.int({ min: 1, max: 5 });
 
+	// booking in past 1 year
 	for (let i = 0; i < numberOfBookings; i++) {
+		const randomServices = faker.helpers.arrayElements(services, {
+			max: 3,
+			min: 1,
+		});
+		const total = randomServices.reduce((acc, service) => {
+			return acc + Number(service.price);
+		}, 0);
 		const booking = await db.booking.create({
 			data: {
-				appointmentDate: faker.date.past({
-					years: 1,
-				}),
+				appointmentDate: randomBookingDateTime(
+					faker.date.past({
+						years: 1,
+					})
+				),
 				createdAt: faker.date.past({
 					years: 1,
 				}),
@@ -113,8 +135,66 @@ for await (const customer of customerId) {
 						id: faker.helpers.arrayElement(baberId),
 					},
 				},
+				status: "completed",
+				totalPrice: total,
 				notes: faker.lorem.paragraph(),
 			},
+		});
+		await db.bookingService.createMany({
+			data: randomServices.map((service) => {
+				return {
+					bookingId: booking.id,
+					serviceId: service.id,
+				};
+			}),
+		});
+	}
+
+	// booking in future 1 week
+	numberOfBookings = faker.number.int({ min: 0, max: 1 });
+	for (let i = 0; i < numberOfBookings; i++) {
+		const randomServices = faker.helpers.arrayElements(services, {
+			max: 3,
+			min: 1,
+		});
+		const total = randomServices.reduce((acc, service) => {
+			return acc + Number(service.price);
+		}, 0);
+		const booking = await db.booking.create({
+			data: {
+				appointmentDate: randomBookingDateTime(
+					faker.date.between({
+						from: new Date(),
+						to: new Date(
+							new Date().getTime() + 7 * 24 * 60 * 60 * 1000
+						),
+					})
+				),
+				createdAt: faker.date.recent({
+					days: 7,
+				}),
+				customer: {
+					connect: {
+						id: customer,
+					},
+				},
+				totalPrice: total,
+				status: faker.helpers.arrayElement(["pending", "confirmed"]),
+				employee: {
+					connect: {
+						id: faker.helpers.arrayElement(baberId),
+					},
+				},
+				notes: faker.lorem.paragraph(),
+			},
+		});
+		await db.bookingService.createMany({
+			data: randomServices.map((service) => {
+				return {
+					bookingId: booking.id,
+					serviceId: service.id,
+				};
+			}),
 		});
 	}
 }

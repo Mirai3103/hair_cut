@@ -13,6 +13,8 @@ const bookingSchema = z.object({
 	}),
 	serviceIds: z.array(z.number().int().positive()).min(1),
 	notes: z.string().optional(),
+	employeeId: z.number().optional(),
+	status: z.string().optional(),
 });
 
 const updateBookingSchema = bookingSchema.partial();
@@ -203,19 +205,49 @@ const updateBooking = [
 	async (req, res) => {
 		const id = Number(req.params.id);
 		if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
-
+		console.log(req.body);
 		try {
 			const data = Object.fromEntries(
 				Object.entries(req.body).filter(([_, v]) => v !== undefined)
 			);
+			const serviceIds = data.serviceIds;
+			delete data.serviceIds;
 
 			if (data.appointmentDate)
 				data.appointmentDate = new Date(data.appointmentDate);
-
 			const updated = await db.booking.update({
 				where: { id },
-				data,
+				data: {
+					...data,
+				},
 			});
+			if (serviceIds) {
+				await db.bookingService.deleteMany({
+					where: { bookingId: id },
+				});
+
+				await db.bookingService.createMany({
+					data: serviceIds.map((serviceId) => ({
+						bookingId: id,
+						serviceId,
+					})),
+				});
+				const prices = await db.bookingService.findMany({
+					where: { bookingId: id },
+					include: {
+						service: true,
+					},
+				});
+				const totalPrice = prices.reduce((acc, service) => {
+					return acc + Number(service.service.price);
+				}, 0);
+				await db.booking.update({
+					where: { id },
+					data: {
+						totalPrice,
+					},
+				});
+			}
 
 			return res.json(updated);
 		} catch (err) {

@@ -1,5 +1,4 @@
 import React, { memo, useCallback, useEffect, useState } from 'react'
-
 import {
   CalendarClock,
   CalendarDays,
@@ -14,15 +13,17 @@ import {
   Search,
   X,
 } from 'lucide-react'
-
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useDebounce } from 'react-use'
 import dayjs from 'dayjs'
+import { toast } from 'sonner'
+import { EditBookingDialog } from './booking/EditBookingDialog'
 import {
   BookingStatus,
   changeBookingStatus,
   fetchBookings,
   getBookingById,
+  updateBooking,
 } from '@/lib/api/bookings'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -34,7 +35,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,9 +52,9 @@ import {
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-
 import { formatDate, formatDateTime, formatPrice } from '@/lib/formatters'
 import { fetchUsers } from '@/lib/api/users'
+import serviceService from '@/services/service.service'
 
 type Status =
   | 'pending'
@@ -106,7 +106,6 @@ type FetchBookingsParams = {
   dateTo?: string
 }
 
-// Memoized StatusBadge component
 const StatusBadge = memo(({ status }: { status: Status }) => {
   switch (status) {
     case 'pending':
@@ -168,7 +167,6 @@ const StatusBadge = memo(({ status }: { status: Status }) => {
   }
 })
 
-// Memoized BookingRow component
 const BookingRow = memo(
   ({
     booking,
@@ -196,7 +194,7 @@ const BookingRow = memo(
           {formatDate(booking.appointmentDate)}
         </td>
         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-          {formatDateTime(booking.appointmentDate)}
+          {dayjs(booking.appointmentDate).format('HH giờ mm')}
         </td>
         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
           {booking.employee ? booking.employee.fullName : 'Chưa phân công'}
@@ -228,7 +226,10 @@ const BookingRow = memo(
               {booking.status === 'pending' && (
                 <DropdownMenuItem
                   onClick={() =>
-                    onChangeStatus(booking.id + '', BookingStatus.confirmed)
+                    onChangeStatus(
+                      booking.id.toString(),
+                      BookingStatus.confirmed,
+                    )
                   }
                 >
                   <Check className="h-4 w-4 mr-2" />
@@ -239,7 +240,10 @@ const BookingRow = memo(
                 booking.status === 'confirmed') && (
                 <DropdownMenuItem
                   onClick={() =>
-                    onChangeStatus(booking.id + '', BookingStatus.in_progress)
+                    onChangeStatus(
+                      booking.id.toString(),
+                      BookingStatus.in_progress,
+                    )
                   }
                 >
                   <Clock className="h-4 w-4 mr-2" />
@@ -249,7 +253,10 @@ const BookingRow = memo(
               {booking.status === 'in_progress' && (
                 <DropdownMenuItem
                   onClick={() =>
-                    onChangeStatus(booking.id + '', BookingStatus.completed)
+                    onChangeStatus(
+                      booking.id.toString(),
+                      BookingStatus.completed,
+                    )
                   }
                 >
                   <Check className="h-4 w-4 mr-2" />
@@ -259,7 +266,7 @@ const BookingRow = memo(
               {booking.status === 'completed' && (
                 <DropdownMenuItem
                   onClick={() =>
-                    onChangeStatus(booking.id + '', BookingStatus.success)
+                    onChangeStatus(booking.id.toString(), BookingStatus.success)
                   }
                 >
                   <Check className="h-4 w-4 mr-2" />
@@ -270,7 +277,10 @@ const BookingRow = memo(
                 booking.status === 'confirmed') && (
                 <DropdownMenuItem
                   onClick={() =>
-                    onChangeStatus(booking.id + '', BookingStatus.cancelled)
+                    onChangeStatus(
+                      booking.id.toString(),
+                      BookingStatus.cancelled,
+                    )
                   }
                 >
                   <X className="h-4 w-4 mr-2" />
@@ -301,9 +311,10 @@ export default function AdminBookings() {
     dateFrom: '',
     dateTo: '',
   })
+
   const { data: bookingDetail } = useQuery({
     queryKey: ['bookings', currentBooking?.id],
-    queryFn: async () => getBookingById(currentBooking!.id + ''),
+    queryFn: async () => getBookingById(currentBooking!.id.toString()),
     enabled: !!currentBooking?.id,
   })
 
@@ -315,6 +326,30 @@ export default function AdminBookings() {
     [searchInput],
   )
 
+  const updateBookingMutation = useMutation({
+    mutationFn: async (data: any) => {
+      await updateBooking(currentBooking!.id.toString(), data)
+    },
+    onSuccess: () => {
+      refetch()
+      toast.success('Cập nhật lịch hẹn thành công')
+      setIsEditDialogOpen(false)
+    },
+    onError: () => {
+      toast.error('Cập nhật lịch hẹn thất bại')
+    },
+  })
+  const { data: services } = useQuery({
+    queryKey: ['services'],
+    queryFn: () =>
+      serviceService.queryServices({
+        sortBy: 'createdAt',
+        sortDirection: 'desc',
+        page: 1,
+        size: 10000,
+      }),
+    select: (d) => d.data.data,
+  })
   useEffect(() => {
     setSearchParams((prev) => ({ ...prev, page: currentPage }))
   }, [currentPage])
@@ -333,9 +368,9 @@ export default function AdminBookings() {
     queryFn: async () => {
       return fetchBookings({
         ...searchParams,
-        status: searchParams.status == 'all' ? undefined : searchParams.status,
+        status: searchParams.status === 'all' ? undefined : searchParams.status,
         employeeId:
-          searchParams.employeeId == 0 || searchParams.employeeId == undefined
+          searchParams.employeeId === 0 || searchParams.employeeId === undefined
             ? undefined
             : Number(searchParams.employeeId),
         dateFrom: searchParams.dateFrom
@@ -346,16 +381,17 @@ export default function AdminBookings() {
           : undefined,
       })
     },
-    select: (da) => {
+    select: (data) => {
       return {
-        bookings: da.data,
-        total: da.meta.total || 1,
-        page: da.meta.page || 1,
-        size: da.meta.size || 10,
+        bookings: data.data,
+        total: data.meta.total || 1,
+        page: data.meta.page || 1,
+        size: data.meta.size || 10,
       }
     },
     staleTime: 30000,
   })
+
   const { data: employees } = useQuery({
     queryKey: ['employees'],
     queryFn: () =>
@@ -450,6 +486,13 @@ export default function AdminBookings() {
       refetch()
     },
   })
+
+  const handleUpdateBooking = useCallback(
+    (formData: any) => {
+      updateBookingMutation.mutate(formData)
+    },
+    [updateBookingMutation],
+  )
 
   return (
     <>
@@ -686,20 +729,14 @@ export default function AdminBookings() {
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                 let pageNumber
 
-                // Handle case when current page is near the end
                 if (currentPage > totalPages - 3 && totalPages > 5) {
                   pageNumber = totalPages - 4 + i
-                }
-                // Handle case when current page is in the middle
-                else if (currentPage > 3 && totalPages > 5) {
+                } else if (currentPage > 3 && totalPages > 5) {
                   pageNumber = currentPage - 2 + i
-                }
-                // Handle normal case (start from page 1)
-                else {
+                } else {
                   pageNumber = i + 1
                 }
 
-                // Ensure pageNumber is always valid
                 if (pageNumber > 0 && pageNumber <= totalPages) {
                   return (
                     <Button
@@ -886,7 +923,7 @@ export default function AdminBookings() {
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                           {bookingDetail?.services?.map(
-                            (service: any, index: any) => (
+                            (service: any, index: number) => (
                               <tr key={service.id}>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                   {index + 1}
@@ -941,161 +978,15 @@ export default function AdminBookings() {
       </Dialog>
 
       {/* Edit Booking Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Chỉnh sửa lịch hẹn #{currentBooking?.id}</DialogTitle>
-          </DialogHeader>
-          {currentBooking && (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault()
-                // Handle form submission here
-                setIsEditDialogOpen(false)
-                // Refresh data after update
-                setTimeout(() => {
-                  refetch()
-                }, 300)
-              }}
-              className="grid gap-4 py-4"
-            >
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="appointmentDate" className="text-right">
-                  Ngày hẹn
-                </Label>
-                <Input
-                  id="appointmentDate"
-                  type="date"
-                  className="col-span-3"
-                  defaultValue={
-                    new Date(currentBooking.appointmentDate)
-                      .toISOString()
-                      .split('T')[0]
-                  }
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="appointmentTime" className="text-right">
-                  Giờ hẹn
-                </Label>
-                <Input
-                  id="appointmentTime"
-                  type="time"
-                  className="col-span-3"
-                  defaultValue={new Date(currentBooking.appointmentDate)
-                    .toTimeString()
-                    .slice(0, 5)}
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="employee" className="text-right">
-                  Nhân viên
-                </Label>
-                <Select
-                  defaultValue={currentBooking.employeeId?.toString() || ''}
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Chọn nhân viên" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">Chưa phân công</SelectItem>
-                    {employees?.map((employee) => (
-                      <SelectItem
-                        key={employee.id}
-                        value={employee.id.toString()}
-                      >
-                        {employee.fullName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="status" className="text-right">
-                  Trạng thái
-                </Label>
-                <Select defaultValue={currentBooking.status}>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Chọn trạng thái" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">Chờ xác nhận</SelectItem>
-                    <SelectItem value="confirmed">Đã xác nhận</SelectItem>
-                    <SelectItem value="in_progress">Đang thực hiện</SelectItem>
-                    <SelectItem value="completed">Hoàn thành</SelectItem>
-                    <SelectItem value="success">Thành công</SelectItem>
-                    <SelectItem value="cancelled">Đã hủy</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid grid-cols-4 items-start gap-4">
-                <Label htmlFor="notes" className="text-right pt-2">
-                  Ghi chú
-                </Label>
-                <Textarea
-                  id="notes"
-                  className="col-span-3"
-                  rows={3}
-                  defaultValue={currentBooking.notes}
-                />
-              </div>
-
-              <div className="col-span-full">
-                <h3 className="text-sm font-medium text-gray-500 mb-2">
-                  Dịch vụ đã đặt
-                </h3>
-                <div className="bg-gray-50 rounded-md p-3">
-                  <div className="space-y-2">
-                    {bookingDetail?.services?.map(
-                      (service: any, index: number) => (
-                        <div
-                          key={service.id}
-                          className="flex items-center justify-between"
-                        >
-                          <div className="flex items-center">
-                            <span className="text-sm text-gray-500 mr-2">
-                              {index + 1}.
-                            </span>
-                            <span className="text-sm font-medium">
-                              {service.service.serviceName}
-                            </span>
-                          </div>
-                          <span className="text-sm">
-                            {formatPrice(service.service.price)}
-                          </span>
-                        </div>
-                      ),
-                    )}
-                    <div className="pt-2 border-t border-gray-200 flex justify-between">
-                      <span className="font-medium">Tổng cộng</span>
-                      <span className="font-bold text-blue-600">
-                        {formatPrice(currentBooking.totalPrice)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsEditDialogOpen(false)}
-                >
-                  Hủy
-                </Button>
-                <Button type="submit">Lưu thay đổi</Button>
-              </DialogFooter>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
+      <EditBookingDialog
+        isOpen={isEditDialogOpen}
+        onClose={() => setIsEditDialogOpen(false)}
+        booking={currentBooking}
+        bookingDetail={bookingDetail}
+        employees={employees || []}
+        services={services || []}
+        onUpdateBooking={handleUpdateBooking}
+      />
     </>
   )
 }
