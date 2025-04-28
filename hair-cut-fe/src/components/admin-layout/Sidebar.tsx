@@ -4,14 +4,13 @@ import {
   Home,
   LogOut,
   Menu,
-  MessageSquare,
   Scissors,
-  Settings,
   User,
   Users,
   X,
 } from 'lucide-react'
-import { Link } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface Props {
   open: boolean
@@ -19,6 +18,15 @@ interface Props {
 }
 
 export default function Sidebar({ open, toggle }: Props) {
+  const { isAuth, user, refreshUser } = useAuth()
+  const navigate = useNavigate()
+  const handleLogout = () => {
+    localStorage.removeItem('access_token')
+    refreshUser()
+    navigate({
+      to: '/',
+    })
+  }
   return (
     <div
       className={`bg-blue-900 text-white ${open ? 'w-64' : 'w-20'} transition-all duration-300 ease-in-out flex flex-col`}
@@ -67,16 +75,6 @@ export default function Sidebar({ open, toggle }: Props) {
               icon: <BarChart3 size={20} />,
               label: 'Báo cáo',
             },
-            {
-              href: '/admin/messages',
-              icon: <MessageSquare size={20} />,
-              label: 'Tin nhắn',
-            },
-            {
-              href: '/admin/settings',
-              icon: <Settings size={20} />,
-              label: 'Cài đặt',
-            },
           ].map((item) => (
             <li key={item.href}>
               <Link
@@ -92,13 +90,13 @@ export default function Sidebar({ open, toggle }: Props) {
       </nav>
 
       <div className="p-4 border-t border-blue-800">
-        <a
-          href="/logout"
+        <button
+          onClick={handleLogout}
           className="flex items-center text-white hover:text-blue-200"
         >
           <LogOut size={20} />
           {open && <span className="ml-3">Đăng xuất</span>}
-        </a>
+        </button>
       </div>
     </div>
   )

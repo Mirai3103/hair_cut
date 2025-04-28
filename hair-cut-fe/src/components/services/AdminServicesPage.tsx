@@ -18,7 +18,10 @@ export function AdminServicesPage() {
   const [sortDirection, setSortDirection] = useState('desc')
 
   const handleEditService = (service: Service) => {
-    navigate({ to: `/admin/services/$id/edit`, params: { id: service.id } })
+    navigate({
+      to: `/admin/services/$id/edit`,
+      params: { id: service.id.toString() },
+    })
   }
 
   const handleDeleteService = (service: Service) => {

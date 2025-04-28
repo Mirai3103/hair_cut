@@ -1,6 +1,8 @@
 import { Bell } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function Topbar() {
+  const { user } = useAuth()
   return (
     <header className="bg-white shadow-sm z-10">
       <div className="flex items-center justify-between p-4">
@@ -17,9 +19,9 @@ export default function Topbar() {
             />
             <div className="ml-2">
               <div className="text-sm font-medium text-gray-700">
-                Admin User
+                {user?.fullName}
               </div>
-              <div className="text-xs text-gray-500">Quản trị viên</div>
+              <div className="text-xs text-gray-500">{user?.role}</div>
             </div>
           </div>
         </div>

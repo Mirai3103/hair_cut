@@ -15,6 +15,7 @@ import { Route as AdminImport } from './routes/admin'
 import { Route as LayoutImport } from './routes/_layout'
 import { Route as AdminIndexImport } from './routes/admin/index'
 import { Route as LayoutIndexImport } from './routes/_layout/index'
+import { Route as AdminReportsImport } from './routes/admin/reports'
 import { Route as LayoutBookingImport } from './routes/_layout/booking'
 import { Route as AdminStaffIndexImport } from './routes/admin/staff/index'
 import { Route as AdminServicesIndexImport } from './routes/admin/services/index'
@@ -47,6 +48,12 @@ const LayoutIndexRoute = LayoutIndexImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => LayoutRoute,
+} as any)
+
+const AdminReportsRoute = AdminReportsImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AdminRoute,
 } as any)
 
 const LayoutBookingRoute = LayoutBookingImport.update({
@@ -123,6 +130,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/booking'
       preLoaderRoute: typeof LayoutBookingImport
       parentRoute: typeof LayoutImport
+    }
+    '/admin/reports': {
+      id: '/admin/reports'
+      path: '/reports'
+      fullPath: '/admin/reports'
+      preLoaderRoute: typeof AdminReportsImport
+      parentRoute: typeof AdminImport
     }
     '/_layout/': {
       id: '/_layout/'
@@ -210,6 +224,7 @@ const LayoutRouteWithChildren =
   LayoutRoute._addFileChildren(LayoutRouteChildren)
 
 interface AdminRouteChildren {
+  AdminReportsRoute: typeof AdminReportsRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminBookingsIndexRoute: typeof AdminBookingsIndexRoute
   AdminCustomersIndexRoute: typeof AdminCustomersIndexRoute
@@ -219,6 +234,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminReportsRoute: AdminReportsRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminBookingsIndexRoute: AdminBookingsIndexRoute,
   AdminCustomersIndexRoute: AdminCustomersIndexRoute,
@@ -233,6 +249,7 @@ export interface FileRoutesByFullPath {
   '': typeof LayoutRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
   '/booking': typeof LayoutBookingRoute
+  '/admin/reports': typeof AdminReportsRoute
   '/': typeof LayoutIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/bookings': typeof AdminBookingsIndexRoute
@@ -246,6 +263,7 @@ export interface FileRoutesByFullPath {
 
 export interface FileRoutesByTo {
   '/booking': typeof LayoutBookingRoute
+  '/admin/reports': typeof AdminReportsRoute
   '/': typeof LayoutIndexRoute
   '/admin': typeof AdminIndexRoute
   '/admin/bookings': typeof AdminBookingsIndexRoute
@@ -262,6 +280,7 @@ export interface FileRoutesById {
   '/_layout': typeof LayoutRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
   '/_layout/booking': typeof LayoutBookingRoute
+  '/admin/reports': typeof AdminReportsRoute
   '/_layout/': typeof LayoutIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/bookings/': typeof AdminBookingsIndexRoute
@@ -279,6 +298,7 @@ export interface FileRouteTypes {
     | ''
     | '/admin'
     | '/booking'
+    | '/admin/reports'
     | '/'
     | '/admin/'
     | '/admin/bookings'
@@ -291,6 +311,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/booking'
+    | '/admin/reports'
     | '/'
     | '/admin'
     | '/admin/bookings'
@@ -305,6 +326,7 @@ export interface FileRouteTypes {
     | '/_layout'
     | '/admin'
     | '/_layout/booking'
+    | '/admin/reports'
     | '/_layout/'
     | '/admin/'
     | '/admin/bookings/'
@@ -353,6 +375,7 @@ export const routeTree = rootRoute
     "/admin": {
       "filePath": "admin.tsx",
       "children": [
+        "/admin/reports",
         "/admin/",
         "/admin/bookings/",
         "/admin/customers/",
@@ -364,6 +387,10 @@ export const routeTree = rootRoute
     "/_layout/booking": {
       "filePath": "_layout/booking.tsx",
       "parent": "/_layout"
+    },
+    "/admin/reports": {
+      "filePath": "admin/reports.tsx",
+      "parent": "/admin"
     },
     "/_layout/": {
       "filePath": "_layout/index.tsx",
