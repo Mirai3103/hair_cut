@@ -34,7 +34,7 @@ const loginSchema = z.object({
   username: z.string().min(1, 'Tên đăng nhập không được bỏ trống'),
   password: z
     .string()
-    .min(6, 'Mật khẩu phải có ít nhất 6 ký tự')
+    .min(3, 'Mật khẩu phải có ít nhất 3 ký tự')
     .max(50, 'Mật khẩu không được quá 50 ký tự'),
 })
 

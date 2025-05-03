@@ -1,4 +1,4 @@
-import { Outlet, createFileRoute } from '@tanstack/react-router'
+import { Link, Outlet, createFileRoute } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import {
   ChevronDown,
@@ -122,9 +122,11 @@ function RouteComponent() {
                     </DropdownMenuItem>
 
                     {isStaff && (
-                      <DropdownMenuItem className="cursor-pointer">
-                        <Settings className="mr-2 h-4 w-4" />
-                        <span>Trang quản trị</span>
+                      <DropdownMenuItem className="cursor-pointer" asChild>
+                        <Link to="/admin">
+                          <Settings className="mr-2 h-4 w-4" />
+                          <span>Trang quản trị</span>
+                        </Link>
                       </DropdownMenuItem>
                     )}
 

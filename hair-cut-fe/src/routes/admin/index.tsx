@@ -1,31 +1,24 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import {
-  BarChart3,
-  Calendar,
-  ClipboardList,
-  Clock,
-  DollarSign,
-  PieChart,
-  Plus,
-  Users,
-} from 'lucide-react'
-
-import { Button } from '@/components/ui/button'
+import { useAuth } from '@/contexts/AuthContext'
 
 export const Route = createFileRoute('/admin/')({
   component: AdminDashboard,
 })
 
 export default function AdminDashboard() {
+  const { user } = useAuth()
   return (
     <>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
-        <p className="text-gray-600">Chào mừng trở lại, Admin User</p>
+        <p className="text-gray-600">
+          Chào mừng trở lại,
+          {user?.fullName}!
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -244,7 +237,7 @@ export default function AdminDashboard() {
             Xem tất cả hoạt động
           </a>
         </div>
-      </div>
+      </div> */}
     </>
   )
 }

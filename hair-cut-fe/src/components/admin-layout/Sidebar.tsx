@@ -10,15 +10,59 @@ import {
   X,
 } from 'lucide-react'
 import { Link, useNavigate } from '@tanstack/react-router'
+import React from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 
 interface Props {
   open: boolean
   toggle: () => void
 }
+const SIDEBAR_ALL_ITEMS = [
+  { href: '/admin', icon: <Home size={20} />, label: 'Dashboard' },
+  {
+    href: '/admin/bookings',
+    icon: <Calendar size={20} />,
+    label: 'Lịch hẹn',
 
+    role: ['admin', 'receptionist'],
+  },
+  {
+    href: '/admin/services',
+    icon: <Scissors size={20} />,
+    label: 'Dịch vụ',
+    role: ['admin'],
+  },
+  {
+    href: '/admin/customers',
+    icon: <Users size={20} />,
+    label: 'Khách hàng',
+    role: ['admin', 'receptionist'],
+  },
+  {
+    href: '/admin/staff',
+    icon: <User size={20} />,
+    label: 'Nhân viên',
+    role: ['admin'],
+  },
+  {
+    href: '/admin/reports',
+    icon: <BarChart3 size={20} />,
+    label: 'Báo cáo',
+    role: ['admin'],
+  },
+]
 export default function Sidebar({ open, toggle }: Props) {
   const { isAuth, user, refreshUser } = useAuth()
+  const role = user?.role
+  const sidebarItems = React.useMemo(() => {
+    return SIDEBAR_ALL_ITEMS.filter((item) => {
+      if (!item.role) return true
+      if (Array.isArray(item.role)) {
+        return item.role.includes(role || '')
+      }
+      return item.role === role
+    })
+  }, [role])
   const navigate = useNavigate()
   const handleLogout = () => {
     localStorage.removeItem('access_token')
@@ -48,34 +92,7 @@ export default function Sidebar({ open, toggle }: Props) {
 
       <nav className="flex-1 overflow-y-auto py-4">
         <ul className="space-y-1 px-2">
-          {[
-            { href: '/admin', icon: <Home size={20} />, label: 'Dashboard' },
-            {
-              href: '/admin/bookings',
-              icon: <Calendar size={20} />,
-              label: 'Lịch hẹn',
-            },
-            {
-              href: '/admin/services',
-              icon: <Scissors size={20} />,
-              label: 'Dịch vụ',
-            },
-            {
-              href: '/admin/customers',
-              icon: <Users size={20} />,
-              label: 'Khách hàng',
-            },
-            {
-              href: '/admin/staff',
-              icon: <User size={20} />,
-              label: 'Nhân viên',
-            },
-            {
-              href: '/admin/reports',
-              icon: <BarChart3 size={20} />,
-              label: 'Báo cáo',
-            },
-          ].map((item) => (
+          {sidebarItems.map((item) => (
             <li key={item.href}>
               <Link
                 to={item.href}
