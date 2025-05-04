@@ -61,7 +61,19 @@ const createUserSchema = z.object({
 const updateUserSchema = createUserSchema.extend({
   password: z
     .string()
-    .min(6, { message: 'Mật khẩu tối thiểu 6 ký tự' })
+    .transform((val) => {
+      const trimmed = val.trim()
+      return trimmed === '' ? undefined : trimmed
+    })
+    .refine(
+      (val) => {
+        if (!val) return true
+        return val.length >= 6
+      },
+      {
+        message: 'Mật khẩu tối thiểu 6 ký tự',
+      },
+    )
     .optional(),
 })
 

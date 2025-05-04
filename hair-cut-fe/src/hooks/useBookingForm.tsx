@@ -16,6 +16,8 @@ export const bookingFormSchema = z.object({
     message: 'Thời gian đặt lịch phải lớn hơn thời gian hiện tại',
   }),
   notes: z.string().optional(),
+  employeeId: z.number().optional(),
+  customerId: z.number().optional(),
 })
 
 export type BookingFormValues = z.infer<typeof bookingFormSchema>

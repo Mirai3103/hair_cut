@@ -40,7 +40,7 @@ const createBooking = [
 				data: {
 					customerId: user.id,
 					appointmentDate: new Date(appointmentDate),
-					employeeId: null,
+					employeeId: req.body.employeeId,
 					notes,
 					status: "pending",
 					totalPrice,

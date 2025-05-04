@@ -24,7 +24,7 @@ const SIDEBAR_ALL_ITEMS = [
     icon: <Calendar size={20} />,
     label: 'Lịch hẹn',
 
-    role: ['admin', 'receptionist'],
+    role: ['admin', 'receptionist', 'barber'],
   },
   {
     href: '/admin/services',

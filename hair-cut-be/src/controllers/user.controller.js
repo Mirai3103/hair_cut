@@ -50,9 +50,9 @@ const getListUsers = [
 		const where = {
 			...(keyword && {
 				OR: [
-					{ fullName: { contains: keyword, mode: "insensitive" } },
-					{ email: { contains: keyword, mode: "insensitive" } },
-					{ phoneNumber: { contains: keyword, mode: "insensitive" } },
+					{ fullName: { contains: keyword } },
+					{ email: { contains: keyword } },
+					{ phone: { contains: keyword } },
 				],
 			}),
 

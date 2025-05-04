@@ -18,6 +18,7 @@ import { useDebounce } from 'react-use'
 import dayjs from 'dayjs'
 import { toast } from 'sonner'
 import { EditBookingDialog } from './booking/EditBookingDialog'
+import AdminCreateBookingModal from './booking/AdminCreateBookingModal'
 import {
   BookingStatus,
   changeBookingStatus,
@@ -55,6 +56,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { formatDate, formatDateTime, formatPrice } from '@/lib/formatters'
 import { fetchUsers } from '@/lib/api/users'
 import serviceService from '@/services/service.service'
+import { useAuth } from '@/contexts/AuthContext'
 
 type Status =
   | 'pending'
@@ -173,11 +175,13 @@ const BookingRow = memo(
     onView,
     onEdit,
     onChangeStatus,
+    isBarber,
   }: {
     booking: Booking
     onView: (booking: Booking) => void
     onEdit: (booking: Booking) => void
     onChangeStatus: (bookingId: string, status: BookingStatus) => void
+    isBarber: boolean
   }) => {
     return (
       <tr key={booking.id} className="hover:bg-gray-50">
@@ -218,7 +222,10 @@ const BookingRow = memo(
                 <Eye className="h-4 w-4 mr-2" />
                 Xem chi tiết
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onEdit(booking)}>
+              <DropdownMenuItem
+                onClick={() => onEdit(booking)}
+                disabled={isBarber}
+              >
                 <Edit className="h-4 w-4 mr-2" />
                 Chỉnh sửa
               </DropdownMenuItem>
@@ -301,6 +308,7 @@ export default function AdminBookings() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [currentBooking, setCurrentBooking] = useState<Booking | null>(null)
   const [searchInput, setSearchInput] = useState('')
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [searchParams, setSearchParams] = useState<FetchBookingsParams>({
     keyword: '',
     page: 1,
@@ -353,7 +361,16 @@ export default function AdminBookings() {
   useEffect(() => {
     setSearchParams((prev) => ({ ...prev, page: currentPage }))
   }, [currentPage])
-
+  const { user } = useAuth()
+  const isBarber = user?.role === 'barber'
+  React.useEffect(() => {
+    if (isBarber) {
+      setSearchParams((prev) => ({
+        ...prev,
+        employeeId: user.id,
+      }))
+    }
+  }, [isBarber])
   const {
     data = {
       bookings: [],
@@ -506,15 +523,31 @@ export default function AdminBookings() {
               Quản lý tất cả các lịch hẹn của khách hàng
             </p>
           </div>
-          <Button
-            className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
-            onClick={resetFilters}
-          >
-            <RefreshCcw size={16} />
-            Làm mới
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+              onClick={() => setIsCreateDialogOpen(true)}
+              hidden={isBarber}
+            >
+              <CalendarClock size={16} />
+              Tạo lịch hẹn
+            </Button>
+            <Button
+              className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
+              onClick={resetFilters}
+            >
+              <RefreshCcw size={16} />
+              Làm mới
+            </Button>
+          </div>
         </div>
-
+        <AdminCreateBookingModal
+          isOpen={isCreateDialogOpen}
+          onClose={() => setIsCreateDialogOpen(false)}
+          onSuccess={() => refetch()}
+          services={services || []}
+          employees={employees || []}
+        />
         {/* Filters */}
         <div className="bg-white p-4 rounded-lg shadow mb-6">
           <div className="flex flex-wrap gap-4 items-center">
@@ -556,6 +589,7 @@ export default function AdminBookings() {
               <Select
                 value={searchParams.employeeId?.toString() || ''}
                 onValueChange={handleEmployeeChange}
+                disabled={isBarber}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Nhân viên" />
@@ -688,6 +722,7 @@ export default function AdminBookings() {
                           status: status,
                         })
                       }
+                      isBarber={isBarber}
                     />
                   ))
                 ) : (

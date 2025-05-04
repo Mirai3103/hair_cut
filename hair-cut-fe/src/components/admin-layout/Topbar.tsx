@@ -21,11 +21,27 @@ export default function Topbar() {
               <div className="text-sm font-medium text-gray-700">
                 {user?.fullName}
               </div>
-              <div className="text-xs text-gray-500">{user?.role}</div>
+              <div className="text-xs text-gray-500">
+                {roleDisplay(user?.role)}
+              </div>
             </div>
           </div>
         </div>
       </div>
     </header>
   )
+}
+function roleDisplay(role?: string) {
+  switch (role) {
+    case 'admin':
+      return 'Quản lý'
+    case 'receptionist':
+      return 'Lễ tân'
+    case 'barber':
+      return 'Thợ cắt tóc'
+    case 'customer':
+      return 'Khách hàng'
+    default:
+      return 'Khách hàng'
+  }
 }
