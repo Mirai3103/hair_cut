@@ -11,6 +11,7 @@ import {
   MoreHorizontal,
   RefreshCcw,
   Search,
+  Trash,
   X,
 } from 'lucide-react'
 import { useMutation, useQuery } from '@tanstack/react-query'
@@ -22,6 +23,7 @@ import AdminCreateBookingModal from './booking/AdminCreateBookingModal'
 import {
   BookingStatus,
   changeBookingStatus,
+  deleteBooking,
   fetchBookings,
   getBookingById,
   updateBooking,
@@ -176,12 +178,14 @@ const BookingRow = memo(
     onEdit,
     onChangeStatus,
     isBarber,
+    onDelete,
   }: {
     booking: Booking
     onView: (booking: Booking) => void
     onEdit: (booking: Booking) => void
     onChangeStatus: (bookingId: string, status: BookingStatus) => void
     isBarber: boolean
+    onDelete: (bookingId: number) => void
   }) => {
     return (
       <tr key={booking.id} className="hover:bg-gray-50">
@@ -229,6 +233,15 @@ const BookingRow = memo(
                 <Edit className="h-4 w-4 mr-2" />
                 Chỉnh sửa
               </DropdownMenuItem>
+              {!isBarber && (
+                <DropdownMenuItem
+                  onClick={() => onDelete(booking.id)}
+                  disabled={booking.status !== 'cancelled'}
+                >
+                  <Trash className="h-4 w-4 mr-2" />
+                  Xóa lịch hẹn
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               {booking.status === 'pending' && (
                 <DropdownMenuItem
@@ -319,7 +332,18 @@ export default function AdminBookings() {
     dateFrom: '',
     dateTo: '',
   })
-
+  const deleteMutate = useMutation({
+    mutationFn: async (id: number) => {
+      await deleteBooking(id.toString())
+    },
+    onSuccess: () => {
+      toast.success('Xóa lịch hẹn thành công')
+      refetch()
+    },
+    onError: () => {
+      toast.error('Xóa lịch hẹn thất bại')
+    },
+  })
   const { data: bookingDetail } = useQuery({
     queryKey: ['bookings', currentBooking?.id],
     queryFn: async () => getBookingById(currentBooking!.id.toString()),
@@ -712,6 +736,7 @@ export default function AdminBookings() {
                 ) : data.bookings.length > 0 ? (
                   data.bookings.map((booking) => (
                     <BookingRow
+                      onDelete={deleteMutate.mutate}
                       key={booking.id}
                       booking={booking}
                       onView={handleViewBooking}
