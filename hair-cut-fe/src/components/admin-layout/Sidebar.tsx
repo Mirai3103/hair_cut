@@ -4,6 +4,7 @@ import {
   Home,
   LogOut,
   Menu,
+  Receipt,
   Scissors,
   User,
   Users,
@@ -25,6 +26,12 @@ const SIDEBAR_ALL_ITEMS = [
     label: 'Lịch hẹn',
 
     role: ['admin', 'receptionist', 'barber'],
+  },
+  {
+    href: '/admin/invoices',
+    icon: <Receipt size={20} />,
+    label: 'Hoá đơn',
+    role: ['admin', 'receptionist'],
   },
   {
     href: '/admin/services',

@@ -283,7 +283,7 @@ const CustomerSelector = React.memo(
 interface AdminCreateBookingModalProps {
   isOpen: boolean
   onClose: () => void
-  onSuccess: () => void
+  onSuccess: (newBooking?: any) => void
   services: Array<any>
   employees: Array<any>
 }
@@ -470,13 +470,13 @@ const AdminCreateBookingModal: React.FC<AdminCreateBookingModalProps> = ({
         employeeId: values.employeeId || null,
       })
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast.success('Tạo lịch hẹn thành công!', {
         description: `Đã tạo lịch hẹn vào lúc ${dayjs(
           form.getValues().appointmentDatetime,
         ).format('HH:mm DD/MM/YYYY')}`,
       })
-      onSuccess()
+      onSuccess(data)
       onClose()
     },
     onError: () => {

@@ -140,6 +140,22 @@ for await (const customer of customerId) {
 				notes: faker.lorem.paragraph(),
 			},
 		});
+		if (booking.status === "completed") {
+			const invoice = await db.invoice.create({
+				data: {
+					totalAmount: total,
+					status: booking.status,
+					invoiceDate: booking.appointmentDate,
+					booking: {
+						connect: {
+							id: booking.id,
+						},
+					},
+
+
+				},
+			});
+		}
 		await db.bookingService.createMany({
 			data: randomServices.map((service) => {
 				return {

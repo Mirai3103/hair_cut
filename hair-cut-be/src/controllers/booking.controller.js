@@ -4,58 +4,14 @@ import {
 } from "zod-express-middleware";
 import db from "../database/index.js";
 import z from "zod";
-import authService from "../services/auth.service.js";
+import bookingService, { bookingSchema, updateBookingSchema } from "../services/booking.service.js";
 
-const bookingSchema = z.object({
-	phoneNumber: z.string().min(1),
-	appointmentDate: z.string().refine((val) => !isNaN(Date.parse(val)), {
-		message: "appointmentDate must be a valid date",
-	}),
-	serviceIds: z.array(z.number().int().positive()).min(1),
-	notes: z.string().optional(),
-	employeeId: z.number().optional(),
-	status: z.string().optional(),
-});
-
-const updateBookingSchema = bookingSchema.partial();
 
 const createBooking = [
 	processRequestBody(bookingSchema),
 	async (req, res) => {
 		try {
-			const { phoneNumber, appointmentDate, serviceIds, notes } =
-				req.body;
-			const user = await authService.getUserByPhoneOrCreate(phoneNumber);
-			if (!user)
-				return res
-					.status(500)
-					.json({ message: "Something went wrong" });
-			const allServices = await db.service.findMany({
-				where: { id: { in: serviceIds } },
-			});
-			const totalPrice = allServices.reduce((acc, service) => {
-				return acc + Number(service.price);
-			}, 0);
-			const booking = await db.booking.create({
-				data: {
-					customerId: user.id,
-					appointmentDate: new Date(appointmentDate),
-					employeeId: req.body.employeeId,
-					notes,
-					status: "pending",
-					totalPrice,
-					createdAt: new Date(),
-					updatedAt: new Date(),
-				},
-			});
-			await db.bookingService.createMany({
-				data: serviceIds.map((serviceId) => ({
-					bookingId: booking.id,
-					serviceId,
-				})),
-			});
-
-			return res.status(201).json(booking);
+			return res.status(200).json(await bookingService.createBooking(req, res));
 		} catch (err) {
 			return res.status(500).json({ error: err.message });
 		}

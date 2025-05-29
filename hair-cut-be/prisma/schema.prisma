@@ -57,6 +57,7 @@ model Booking {
 
   @@index([customerId])
   @@index([employeeId])
+  Invoice Invoice[]
 }
 
 model BookingService {
@@ -114,4 +115,23 @@ model User {
 
   customerBookings Booking[] @relation("CustomerBookings")
   employeeBookings Booking[] @relation("EmployeeBookings")
+}
+
+model HairStyle {
+  id          Int      @id @default(autoincrement())
+  name        String @db.VarChar(100)
+  description String?  @db.Text
+  imageUrl    String?  @db.VarChar(500)
+}
+
+model Invoice {
+  id          Int      @id @default(autoincrement())
+  bookingId   Int
+  invoiceDate DateTime @db.DateTime(3)
+  totalAmount Decimal  @default(0.00) @db.Decimal(10, 2)
+  status      Status   @default(pending)
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
 }
