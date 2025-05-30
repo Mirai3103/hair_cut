@@ -97,6 +97,16 @@ function RouteComponent() {
                 </Link>
               </Button>
             </div>
+            <div className="mt-4">
+              <Button
+                className="bg-blue-100 hover:bg-blue-200 text-blue-900 font-bold w-full"
+                asChild
+              >
+                <Link to="/test-hair">
+                  🎨 Thử mẫu tóc ảo - Xem trước kiểu tóc mới
+                </Link>
+              </Button>
+            </div>
           </div>
 
           {/* Rating Section */}

@@ -575,6 +575,7 @@ const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
 
       {/* Create Booking Modal */}
       <AdminCreateBookingModal
+        allowPastHours={true}
         isOpen={isCreateBookingOpen}
         onClose={() => setIsCreateBookingOpen(false)}
         onSuccess={handleBookingCreated}

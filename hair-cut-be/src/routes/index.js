@@ -7,6 +7,7 @@ import bookingRouter from "./booking.route.js";
 import userRouter from "./user.route.js";
 import reportRouter from "./report.route.js";
 import invoiceRouter from "./invoice.route.js";
+import hairStyleRouter from "./hair-style.route.js";
 const apiRoute = express.Router();
 
 apiRoute.use("/services", serviceRouter);
@@ -17,5 +18,5 @@ apiRoute.use("/bookings", bookingRouter);
 apiRoute.use("/users", userRouter);
 apiRoute.use("/reports", reportRouter);
 apiRoute.use("/invoices", invoiceRouter);
-
+apiRoute.use("/hair-styles", hairStyleRouter);
 export default apiRoute;

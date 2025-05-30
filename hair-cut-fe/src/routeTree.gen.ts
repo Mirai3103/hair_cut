@@ -16,6 +16,7 @@ import { Route as LayoutImport } from './routes/_layout'
 import { Route as AdminIndexImport } from './routes/admin/index'
 import { Route as LayoutIndexImport } from './routes/_layout/index'
 import { Route as AdminReportsImport } from './routes/admin/reports'
+import { Route as LayoutTestHairImport } from './routes/_layout/test-hair'
 import { Route as LayoutBookingImport } from './routes/_layout/booking'
 import { Route as AdminStaffIndexImport } from './routes/admin/staff/index'
 import { Route as AdminServicesIndexImport } from './routes/admin/services/index'
@@ -55,6 +56,12 @@ const AdminReportsRoute = AdminReportsImport.update({
   id: '/reports',
   path: '/reports',
   getParentRoute: () => AdminRoute,
+} as any)
+
+const LayoutTestHairRoute = LayoutTestHairImport.update({
+  id: '/test-hair',
+  path: '/test-hair',
+  getParentRoute: () => LayoutRoute,
 } as any)
 
 const LayoutBookingRoute = LayoutBookingImport.update({
@@ -136,6 +143,13 @@ declare module '@tanstack/react-router' {
       path: '/booking'
       fullPath: '/booking'
       preLoaderRoute: typeof LayoutBookingImport
+      parentRoute: typeof LayoutImport
+    }
+    '/_layout/test-hair': {
+      id: '/_layout/test-hair'
+      path: '/test-hair'
+      fullPath: '/test-hair'
+      preLoaderRoute: typeof LayoutTestHairImport
       parentRoute: typeof LayoutImport
     }
     '/admin/reports': {
@@ -222,6 +236,7 @@ declare module '@tanstack/react-router' {
 
 interface LayoutRouteChildren {
   LayoutBookingRoute: typeof LayoutBookingRoute
+  LayoutTestHairRoute: typeof LayoutTestHairRoute
   LayoutIndexRoute: typeof LayoutIndexRoute
   LayoutServicesHairCutIdRoute: typeof LayoutServicesHairCutIdRoute
   LayoutServicesHairCutIndexRoute: typeof LayoutServicesHairCutIndexRoute
@@ -229,6 +244,7 @@ interface LayoutRouteChildren {
 
 const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutBookingRoute: LayoutBookingRoute,
+  LayoutTestHairRoute: LayoutTestHairRoute,
   LayoutIndexRoute: LayoutIndexRoute,
   LayoutServicesHairCutIdRoute: LayoutServicesHairCutIdRoute,
   LayoutServicesHairCutIndexRoute: LayoutServicesHairCutIndexRoute,
@@ -265,6 +281,7 @@ export interface FileRoutesByFullPath {
   '': typeof LayoutRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
   '/booking': typeof LayoutBookingRoute
+  '/test-hair': typeof LayoutTestHairRoute
   '/admin/reports': typeof AdminReportsRoute
   '/': typeof LayoutIndexRoute
   '/admin/': typeof AdminIndexRoute
@@ -280,6 +297,7 @@ export interface FileRoutesByFullPath {
 
 export interface FileRoutesByTo {
   '/booking': typeof LayoutBookingRoute
+  '/test-hair': typeof LayoutTestHairRoute
   '/admin/reports': typeof AdminReportsRoute
   '/': typeof LayoutIndexRoute
   '/admin': typeof AdminIndexRoute
@@ -298,6 +316,7 @@ export interface FileRoutesById {
   '/_layout': typeof LayoutRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
   '/_layout/booking': typeof LayoutBookingRoute
+  '/_layout/test-hair': typeof LayoutTestHairRoute
   '/admin/reports': typeof AdminReportsRoute
   '/_layout/': typeof LayoutIndexRoute
   '/admin/': typeof AdminIndexRoute
@@ -317,6 +336,7 @@ export interface FileRouteTypes {
     | ''
     | '/admin'
     | '/booking'
+    | '/test-hair'
     | '/admin/reports'
     | '/'
     | '/admin/'
@@ -331,6 +351,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/booking'
+    | '/test-hair'
     | '/admin/reports'
     | '/'
     | '/admin'
@@ -347,6 +368,7 @@ export interface FileRouteTypes {
     | '/_layout'
     | '/admin'
     | '/_layout/booking'
+    | '/_layout/test-hair'
     | '/admin/reports'
     | '/_layout/'
     | '/admin/'
@@ -389,6 +411,7 @@ export const routeTree = rootRoute
       "filePath": "_layout.tsx",
       "children": [
         "/_layout/booking",
+        "/_layout/test-hair",
         "/_layout/",
         "/_layout/services/hair-cut/$id",
         "/_layout/services/hair-cut/"
@@ -409,6 +432,10 @@ export const routeTree = rootRoute
     },
     "/_layout/booking": {
       "filePath": "_layout/booking.tsx",
+      "parent": "/_layout"
+    },
+    "/_layout/test-hair": {
+      "filePath": "_layout/test-hair.tsx",
       "parent": "/_layout"
     },
     "/admin/reports": {

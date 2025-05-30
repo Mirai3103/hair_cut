@@ -286,6 +286,7 @@ interface AdminCreateBookingModalProps {
   onSuccess: (newBooking?: any) => void
   services: Array<any>
   employees: Array<any>
+  allowPastHours?: boolean
 }
 
 const AdminCreateBookingModal: React.FC<AdminCreateBookingModalProps> = ({
@@ -294,6 +295,7 @@ const AdminCreateBookingModal: React.FC<AdminCreateBookingModalProps> = ({
   onSuccess,
   services,
   employees,
+  allowPastHours = false,
 }) => {
   const form = useBookingForm()
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
@@ -384,7 +386,7 @@ const AdminCreateBookingModal: React.FC<AdminCreateBookingModalProps> = ({
     let startMinutes = 7 * 60
     const endMinutes = 22 * 60
 
-    if (isSameDay) {
+    if (isSameDay && !allowPastHours) {
       const currentHour = currentDate.hour()
       const currentMinute = currentDate.minute()
       const currentTotalMinutes = currentHour * 60 + currentMinute
@@ -400,7 +402,7 @@ const AdminCreateBookingModal: React.FC<AdminCreateBookingModalProps> = ({
     }
 
     return slots
-  }, [])
+  }, [allowPastHours])
 
   useEffect(() => {
     if (selectedDate) {
@@ -458,7 +460,7 @@ const AdminCreateBookingModal: React.FC<AdminCreateBookingModalProps> = ({
     }
 
     return { totalPrice, totalDuration }
-  }, [form, getServiceById])
+  }, [ getServiceById, allowPastHours,form.watch('serviceIds')])
 
   const { mutate, isPending: isMutating } = useMutation({
     mutationFn: (values: any) => {

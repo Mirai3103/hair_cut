@@ -10,8 +10,11 @@ import {
   RefreshCcw,
   Search,
   Trash,
+  Check,
+  X,
+  Clock,
 } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { useDebounce } from 'react-use'
 import dayjs from 'dayjs'
 import { toast } from 'sonner'
@@ -19,6 +22,8 @@ import CreateInvoiceModal from './invoice/CreateInvoiceModal'
 import {
   fetchInvoices,
   getInvoiceById,
+  deleteInvoice,
+  changeInvoiceStatus,
 } from '@/lib/api/invoices'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -175,12 +180,14 @@ const InvoiceRow = memo(
     onView,
     onEdit,
     onDelete,
+    onChangeStatus,
     isBarber,
   }: {
     invoice: Invoice
     onView: (invoice: Invoice) => void
     onEdit: (invoice: Invoice) => void
     onDelete: (invoiceId: number) => void
+    onChangeStatus: (invoiceId: string, status: string) => void
     isBarber: boolean
   }) => {
     return (
@@ -222,20 +229,55 @@ const InvoiceRow = memo(
                 <Eye className="h-4 w-4 mr-2" />
                 Xem chi tiết
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => onEdit(invoice)}
-                disabled={isBarber}
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Chỉnh sửa
-              </DropdownMenuItem>
+             
               {!isBarber && (
                 <DropdownMenuItem
                   onClick={() => onDelete(invoice.id)}
-                  disabled={invoice.status === 'success'}
+                  disabled={invoice.status !== 'cancelled'}
                 >
                   <Trash className="h-4 w-4 mr-2" />
                   Xóa hóa đơn
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              {invoice.status === 'pending' && (
+                <DropdownMenuItem
+                  onClick={() => onChangeStatus(invoice.id.toString(), 'confirmed')}
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  Xác nhận hóa đơn
+                </DropdownMenuItem>
+              )}
+              {(invoice.status === 'pending' || invoice.status === 'confirmed') && (
+                <DropdownMenuItem
+                  onClick={() => onChangeStatus(invoice.id.toString(), 'in_progress')}
+                >
+                  <Clock className="h-4 w-4 mr-2" />
+                  Bắt đầu thực hiện
+                </DropdownMenuItem>
+              )}
+              {invoice.status === 'in_progress' && (
+                <DropdownMenuItem
+                  onClick={() => onChangeStatus(invoice.id.toString(), 'completed')}
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  Hoàn thành
+                </DropdownMenuItem>
+              )}
+              {invoice.status === 'completed' && (
+                <DropdownMenuItem
+                  onClick={() => onChangeStatus(invoice.id.toString(), 'success')}
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  Đánh dấu thành công
+                </DropdownMenuItem>
+              )}
+              {(invoice.status === 'pending' || invoice.status === 'confirmed') && (
+                <DropdownMenuItem
+                  onClick={() => onChangeStatus(invoice.id.toString(), 'cancelled')}
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Hủy hóa đơn
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
@@ -364,9 +406,37 @@ export default function InvoiceManagement() {
     toast.info('Chức năng chỉnh sửa đang được phát triển')
   }, [])
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await deleteInvoice(id.toString())
+    },
+    onSuccess: () => {
+      toast.success('Xóa hóa đơn thành công')
+      refetch()
+    },
+    onError: () => {
+      toast.error('Xóa hóa đơn thất bại')
+    },
+  })
+
+  const changeStatusMutation = useMutation({
+    mutationFn: async ({ invoiceId, status }: { invoiceId: string; status: string }) => {
+      await changeInvoiceStatus(invoiceId, status)
+    },
+    onSuccess: () => {
+      toast.success('Cập nhật trạng thái thành công')
+      refetch()
+    },
+    onError: () => {
+      toast.error('Cập nhật trạng thái thất bại')
+    },
+  })
+
   const handleDeleteInvoice = useCallback((invoiceId: number) => {
-    toast.info('Chức năng xóa đang được phát triển')
-  }, [])
+    if (window.confirm('Bạn có chắc chắn muốn xóa hóa đơn này?')) {
+      deleteMutation.mutate(invoiceId)
+    }
+  }, [deleteMutation])
 
   const handleCreateInvoice = useCallback(() => {
     setIsCreateDialogOpen(true)
@@ -569,6 +639,9 @@ export default function InvoiceManagement() {
                       onView={handleViewInvoice}
                       onEdit={handleEditInvoice}
                       onDelete={handleDeleteInvoice}
+                      onChangeStatus={(invoiceId, status) =>
+                        changeStatusMutation.mutate({ invoiceId, status })
+                      }
                       isBarber={isBarber}
                     />
                   ))

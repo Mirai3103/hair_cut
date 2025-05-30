@@ -247,6 +247,14 @@ const changeBookingStatus = [
 					status: req.body.status,
 				},
 			});
+			if(updated.status === "success"){
+				 db.invoice.updateMany({
+					where: { bookingId: id },
+					data: {
+						status: "success",
+					},
+				});
+			}
 
 			return res.json(updated);
 		} catch (err) {

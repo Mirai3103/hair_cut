@@ -52,4 +52,9 @@ export async function createInvoice(data: any) {
 export async function deleteInvoice(id: string) {
   const response = await apiClient.delete(`/api/invoices/${id}`)
   return response.data
+}
+
+export async function changeInvoiceStatus(id: string, status: string) {
+  const response = await apiClient.patch(`/api/invoices/${id}/status`, { status })
+  return response.data
 } 
