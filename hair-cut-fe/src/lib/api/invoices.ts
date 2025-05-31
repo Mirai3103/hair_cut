@@ -57,4 +57,19 @@ export async function deleteInvoice(id: string) {
 export async function changeInvoiceStatus(id: string, status: string) {
   const response = await apiClient.patch(`/api/invoices/${id}/status`, { status })
   return response.data
+}
+
+export async function exportInvoicePdf(id: string) {
+  const response = await apiClient.get(`/api/invoices/${id}/pdf`, {
+    responseType: 'blob'
+  })
+  const blob = new Blob([response.data], { type: 'application/pdf' })
+  const url = window.URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.setAttribute('download', `hoa-don-${id}.pdf`)
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  window.URL.revokeObjectURL(url)
 } 

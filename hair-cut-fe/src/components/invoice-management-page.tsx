@@ -13,6 +13,7 @@ import {
   Check,
   X,
   Clock,
+  Download,
 } from 'lucide-react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { useDebounce } from 'react-use'
@@ -24,6 +25,7 @@ import {
   getInvoiceById,
   deleteInvoice,
   changeInvoiceStatus,
+  exportInvoicePdf,
 } from '@/lib/api/invoices'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -181,6 +183,7 @@ const InvoiceRow = memo(
     onEdit,
     onDelete,
     onChangeStatus,
+    onExportPdf,
     isBarber,
   }: {
     invoice: Invoice
@@ -188,6 +191,7 @@ const InvoiceRow = memo(
     onEdit: (invoice: Invoice) => void
     onDelete: (invoiceId: number) => void
     onChangeStatus: (invoiceId: string, status: string) => void
+    onExportPdf: (invoiceId: string) => void
     isBarber: boolean
   }) => {
     return (
@@ -229,7 +233,10 @@ const InvoiceRow = memo(
                 <Eye className="h-4 w-4 mr-2" />
                 Xem chi tiết
               </DropdownMenuItem>
-             
+              <DropdownMenuItem onClick={() => onExportPdf(invoice.id.toString())}>
+                <Download className="h-4 w-4 mr-2" />
+                Xuất hóa đơn
+              </DropdownMenuItem>
               {!isBarber && (
                 <DropdownMenuItem
                   onClick={() => onDelete(invoice.id)}
@@ -463,6 +470,15 @@ export default function InvoiceManagement() {
 
   const totalPages = Math.ceil(data.total / searchParams.size!)
 
+  const handleExportPdf = useCallback(async (invoiceId: string) => {
+    try {
+      await exportInvoicePdf(invoiceId)
+      toast.success('Xuất hóa đơn PDF thành công')
+    } catch (error) {
+      toast.error('Xuất hóa đơn PDF thất bại')
+    }
+  }, [])
+
   return (
     <>
       <main className="flex-1 overflow-y-auto bg-gray-100 p-6">
@@ -639,9 +655,10 @@ export default function InvoiceManagement() {
                       onView={handleViewInvoice}
                       onEdit={handleEditInvoice}
                       onDelete={handleDeleteInvoice}
-                      onChangeStatus={(invoiceId, status) =>
-                        changeStatusMutation.mutate({ invoiceId, status })
+                      onChangeStatus={(id, status) =>
+                        changeStatusMutation.mutate({ invoiceId: id, status })
                       }
+                      onExportPdf={handleExportPdf}
                       isBarber={isBarber}
                     />
                   ))

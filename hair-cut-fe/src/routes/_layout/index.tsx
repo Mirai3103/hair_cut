@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input'
 import serviceService from '@/services/service.service'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
+import TestHair from '@/components/test-hair'
 
 export const Route = createFileRoute('/_layout/')({
   loader: async () => {
@@ -196,6 +197,7 @@ function RouteComponent() {
           <Phone className="h-6 w-6" />
         </Button>
       </div>
+      <TestHair/>
       <section id="contact" className="container py-12 md:py-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           <div className="animate-fade-right animate-once animate-duration-1000 animate-ease-in-out">
