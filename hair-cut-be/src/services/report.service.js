@@ -1,44 +1,48 @@
 import db from "../database/index.js";
+import { Status } from "../database/generated/index.js";
 
-function buildBookingWhere({ from, to, year, employeeId }) {
+function buildInvoiceWhere(filters = {}) {
+	const { from, to, year, employeeId } = filters;
 	const where = {
-		status: { in: ["completed", "success"] },
+		status: Status.success,
 	};
 
 	if (year) {
-		where.appointmentDate = {
+		where.invoiceDate = {
 			gte: new Date(`${year}-01-01`),
 			lte: new Date(`${year}-12-31`),
 		};
 	} else if (from && to) {
-		where.appointmentDate = {
+		where.invoiceDate = {
 			gte: new Date(from),
 			lte: new Date(to),
 		};
 	}
 
 	if (employeeId) {
-		where.employeeId = Number(employeeId);
+		where.booking = {
+			employeeId: Number(employeeId),
+		};
 	}
 
 	return where;
 }
 
 async function getMonthlyRevenueTable(filters = {}) {
-	const where = buildBookingWhere(filters);
+	const where = buildInvoiceWhere(filters);
 
-	const bookings = await db.booking.findMany({
+	const invoices = await db.invoice.findMany({
 		where,
 		select: {
-			appointmentDate: true,
-			totalPrice: true,
+			invoiceDate: true,
+			totalAmount: true,
 		},
 	});
 
 	const map = new Map();
 
-	bookings.forEach(({ appointmentDate, totalPrice }) => {
-		const date = new Date(appointmentDate);
+	invoices.forEach(({ invoiceDate, totalAmount }) => {
+		const date = new Date(invoiceDate);
 		const month = `${date.getFullYear()}-${(date.getMonth() + 1)
 			.toString()
 			.padStart(2, "0")}`;
@@ -49,7 +53,7 @@ async function getMonthlyRevenueTable(filters = {}) {
 
 		const entry = map.get(month);
 		entry.count++;
-		entry.total += Number(totalPrice ?? 0);
+		entry.total += Number(totalAmount ?? 0);
 	});
 
 	// Sort by month
@@ -64,16 +68,20 @@ async function getMonthlyRevenueTable(filters = {}) {
 
 // 💈 Bảng doanh thu theo dịch vụ
 async function getRevenueByServiceTable(filters = {}) {
-	const where = buildBookingWhere(filters);
+	const where = buildInvoiceWhere(filters);
 
-	// Better approach: join from booking side to ensure only filtered bookings
-	const filteredBookings = await db.booking.findMany({
+	// Get successful invoices and their related booking services
+	const successfulInvoices = await db.invoice.findMany({
 		where,
 		include: {
-			services: {
+			booking: {
 				include: {
-					service: {
-						select: { id: true, serviceName: true },
+					services: {
+						include: {
+							service: {
+								select: { id: true, serviceName: true },
+							},
+						},
 					},
 				},
 			},
@@ -82,14 +90,14 @@ async function getRevenueByServiceTable(filters = {}) {
 
 	const map = new Map();
 
-	for (const booking of filteredBookings) {
-		const serviceCount = booking.services.length;
+	for (const invoice of successfulInvoices) {
+		const serviceCount = invoice.booking.services.length;
 		if (serviceCount === 0) continue;
 
-		// Calculate portion per service
-		const portion = Number(booking.totalPrice) / serviceCount;
+		// Calculate portion per service based on invoice total amount
+		const portion = Number(invoice.totalAmount) / serviceCount;
 
-		for (const bookingService of booking.services) {
+		for (const bookingService of invoice.booking.services) {
 			// Skip if service ID filter is applied and doesn't match
 			if (
 				filters.serviceId &&
@@ -119,6 +127,7 @@ async function getRevenueByServiceTable(filters = {}) {
 			total,
 		}));
 }
+
 export default {
 	getMonthlyRevenueTable,
 	getRevenueByServiceTable,

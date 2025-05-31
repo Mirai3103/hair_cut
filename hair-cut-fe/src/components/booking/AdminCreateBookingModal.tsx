@@ -160,7 +160,7 @@ const TimeSlotSelector = React.memo(
             )}
           </SelectValue>
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className='max-h-[400px] overflow-y-auto'>
           {timeSlots.length > 0 ? (
             timeSlots.map((timeSlot) => (
               <SelectItem key={timeSlot} value={timeSlot}>

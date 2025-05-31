@@ -501,7 +501,7 @@ const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                           </div>
                           <div>
                             <span className="text-gray-600">Khách hàng:</span>
-                            <span className="ml-2 font-medium">{newlyCreatedBooking.customer?.fullName || 'Khách hàng mới'}</span>
+                            <span className="ml-2 font-medium">{newlyCreatedBooking.customer.fullName || 'Khách hàng mới'}</span>
                           </div>
                           <div>
                             <span className="text-gray-600">Ngày hẹn:</span>

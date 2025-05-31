@@ -247,8 +247,8 @@ const changeBookingStatus = [
 					status: req.body.status,
 				},
 			});
-			if(updated.status === "success"){
-				 db.invoice.updateMany({
+			if( req.body.status == "success"){
+				await db.invoice.updateMany({
 					where: { bookingId: id },
 					data: {
 						status: "success",

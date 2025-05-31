@@ -4,7 +4,7 @@ import z from "zod";
 const querySchema = z.object({
 	keyword: z.string().optional(),
 	page: z.coerce.number().min(1).optional(),
-	size: z.coerce.number().min(1).max(20000).optional(),
+	size: z.coerce.number().min(1).max(2000000).optional(),
 	sortBy: z.enum(["fullName", "id"]).default("id"),
 	sortDirection: z.enum(["asc", "desc"]).default("desc"),
 	role: z

@@ -46,6 +46,7 @@ export const updateBookingSchema = bookingSchema.partial();
 					serviceId,
 				})),
 			});
+			booking.customer = user
 
 			return booking;
 }
