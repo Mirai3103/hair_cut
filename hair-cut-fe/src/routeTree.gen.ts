@@ -21,6 +21,7 @@ import { Route as LayoutBookingImport } from './routes/_layout/booking'
 import { Route as AdminStaffIndexImport } from './routes/admin/staff/index'
 import { Route as AdminServicesIndexImport } from './routes/admin/services/index'
 import { Route as AdminInvoicesIndexImport } from './routes/admin/invoices/index'
+import { Route as AdminHairStylesIndexImport } from './routes/admin/hair-styles/index'
 import { Route as AdminCustomersIndexImport } from './routes/admin/customers/index'
 import { Route as AdminBookingsIndexImport } from './routes/admin/bookings/index'
 import { Route as LayoutServicesHairCutIndexImport } from './routes/_layout/services/hair-cut/index'
@@ -85,6 +86,12 @@ const AdminServicesIndexRoute = AdminServicesIndexImport.update({
 const AdminInvoicesIndexRoute = AdminInvoicesIndexImport.update({
   id: '/invoices/',
   path: '/invoices/',
+  getParentRoute: () => AdminRoute,
+} as any)
+
+const AdminHairStylesIndexRoute = AdminHairStylesIndexImport.update({
+  id: '/hair-styles/',
+  path: '/hair-styles/',
   getParentRoute: () => AdminRoute,
 } as any)
 
@@ -187,6 +194,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCustomersIndexImport
       parentRoute: typeof AdminImport
     }
+    '/admin/hair-styles/': {
+      id: '/admin/hair-styles/'
+      path: '/hair-styles'
+      fullPath: '/admin/hair-styles'
+      preLoaderRoute: typeof AdminHairStylesIndexImport
+      parentRoute: typeof AdminImport
+    }
     '/admin/invoices/': {
       id: '/admin/invoices/'
       path: '/invoices'
@@ -258,6 +272,7 @@ interface AdminRouteChildren {
   AdminIndexRoute: typeof AdminIndexRoute
   AdminBookingsIndexRoute: typeof AdminBookingsIndexRoute
   AdminCustomersIndexRoute: typeof AdminCustomersIndexRoute
+  AdminHairStylesIndexRoute: typeof AdminHairStylesIndexRoute
   AdminInvoicesIndexRoute: typeof AdminInvoicesIndexRoute
   AdminServicesIndexRoute: typeof AdminServicesIndexRoute
   AdminStaffIndexRoute: typeof AdminStaffIndexRoute
@@ -269,6 +284,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminIndexRoute: AdminIndexRoute,
   AdminBookingsIndexRoute: AdminBookingsIndexRoute,
   AdminCustomersIndexRoute: AdminCustomersIndexRoute,
+  AdminHairStylesIndexRoute: AdminHairStylesIndexRoute,
   AdminInvoicesIndexRoute: AdminInvoicesIndexRoute,
   AdminServicesIndexRoute: AdminServicesIndexRoute,
   AdminStaffIndexRoute: AdminStaffIndexRoute,
@@ -287,6 +303,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/admin/bookings': typeof AdminBookingsIndexRoute
   '/admin/customers': typeof AdminCustomersIndexRoute
+  '/admin/hair-styles': typeof AdminHairStylesIndexRoute
   '/admin/invoices': typeof AdminInvoicesIndexRoute
   '/admin/services': typeof AdminServicesIndexRoute
   '/admin/staff': typeof AdminStaffIndexRoute
@@ -303,6 +320,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/admin/bookings': typeof AdminBookingsIndexRoute
   '/admin/customers': typeof AdminCustomersIndexRoute
+  '/admin/hair-styles': typeof AdminHairStylesIndexRoute
   '/admin/invoices': typeof AdminInvoicesIndexRoute
   '/admin/services': typeof AdminServicesIndexRoute
   '/admin/staff': typeof AdminStaffIndexRoute
@@ -322,6 +340,7 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/admin/bookings/': typeof AdminBookingsIndexRoute
   '/admin/customers/': typeof AdminCustomersIndexRoute
+  '/admin/hair-styles/': typeof AdminHairStylesIndexRoute
   '/admin/invoices/': typeof AdminInvoicesIndexRoute
   '/admin/services/': typeof AdminServicesIndexRoute
   '/admin/staff/': typeof AdminStaffIndexRoute
@@ -342,6 +361,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/admin/bookings'
     | '/admin/customers'
+    | '/admin/hair-styles'
     | '/admin/invoices'
     | '/admin/services'
     | '/admin/staff'
@@ -357,6 +377,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/admin/bookings'
     | '/admin/customers'
+    | '/admin/hair-styles'
     | '/admin/invoices'
     | '/admin/services'
     | '/admin/staff'
@@ -374,6 +395,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/admin/bookings/'
     | '/admin/customers/'
+    | '/admin/hair-styles/'
     | '/admin/invoices/'
     | '/admin/services/'
     | '/admin/staff/'
@@ -424,6 +446,7 @@ export const routeTree = rootRoute
         "/admin/",
         "/admin/bookings/",
         "/admin/customers/",
+        "/admin/hair-styles/",
         "/admin/invoices/",
         "/admin/services/",
         "/admin/staff/",
@@ -456,6 +479,10 @@ export const routeTree = rootRoute
     },
     "/admin/customers/": {
       "filePath": "admin/customers/index.tsx",
+      "parent": "/admin"
+    },
+    "/admin/hair-styles/": {
+      "filePath": "admin/hair-styles/index.tsx",
       "parent": "/admin"
     },
     "/admin/invoices/": {

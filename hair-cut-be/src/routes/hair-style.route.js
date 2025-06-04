@@ -4,5 +4,8 @@ const hairStyleRouter = express.Router();
 
 hairStyleRouter.get("/", ...hairStyleController.getAllHairStyles);
 hairStyleRouter.get("/:id", ...hairStyleController.getHairStyleById);
+hairStyleRouter.post("/", ...hairStyleController.createHairStyle);
+hairStyleRouter.put("/:id", ...hairStyleController.updateHairStyle);
+hairStyleRouter.delete("/:id", ...hairStyleController.deleteHairStyle);
 
 export default hairStyleRouter;

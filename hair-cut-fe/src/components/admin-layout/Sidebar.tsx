@@ -52,6 +52,12 @@ const SIDEBAR_ALL_ITEMS = [
     role: ['admin'],
   },
   {
+    href: '/admin/hair-styles',
+    icon: <Scissors size={20} />,
+    label: 'Kiểu tóc',
+    role: ['admin'],
+  },
+  {
     href: '/admin/reports',
     icon: <BarChart3 size={20} />,
     label: 'Báo cáo',
